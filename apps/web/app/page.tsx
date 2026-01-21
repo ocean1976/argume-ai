@@ -1,6 +1,7 @@
 "use client"
 
 import React, { useState } from 'react'
+import Image from 'next/image'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -64,6 +65,20 @@ export default function LandingPage() {
             transition={{ duration: 0.5 }}
             className="max-w-4xl mx-auto text-center"
           >
+            <motion.div 
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ duration: 0.6, delay: 0.1 }}
+              className="mb-8 flex justify-center"
+            >
+              <Image 
+                src="/logo.png" 
+                alt="Argume.ai" 
+                width={80} 
+                height={80}
+                className="w-20 h-20 object-contain drop-shadow-lg"
+              />
+            </motion.div>
             <div className="inline-flex items-center rounded-full px-3 py-1 text-sm font-medium bg-indigo-500/10 text-indigo-400 ring-1 ring-inset ring-indigo-500/20 mb-8">
               Argume.ai Beta Yakında
             </div>

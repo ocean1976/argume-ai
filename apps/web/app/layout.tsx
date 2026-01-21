@@ -7,6 +7,28 @@ const inter = Inter({ subsets: ["latin"] });
 export const metadata: Metadata = {
   title: "Argume.ai | Tek bir AI'a sorma. Meclise danış.",
   description: "Sorunu yaz, AI'lar kendi aralarında tartışsın. Farklı perspektifleri gör, en doğru ve kapsamlı cevaba ulaş.",
+  icons: {
+    icon: "/logo.png",
+    apple: "/logo.png",
+  },
+  openGraph: {
+    title: "Argume.ai | Tek bir AI'a sorma. Meclise danış.",
+    description: "Sorunu yaz, AI'lar kendi aralarında tartışsın. Farklı perspektifleri gör, en doğru ve kapsamlı cevaba ulaş.",
+    images: [
+      {
+        url: "/logo.png",
+        width: 512,
+        height: 512,
+        alt: "Argume.ai Logo",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary",
+    title: "Argume.ai | Tek bir AI'a sorma. Meclise danış.",
+    description: "Sorunu yaz, AI'lar kendi aralarında tartışsın. Farklı perspektifleri gör, en doğru ve kapsamlı cevaba ulaş.",
+    images: ["/logo.png"],
+  },
 };
 
 export default function RootLayout({

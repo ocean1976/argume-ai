@@ -1,4 +1,5 @@
 import React from 'react'
+import Image from 'next/image'
 import { Plus, MessageSquare, Settings, CreditCard, ChevronRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -29,8 +30,14 @@ export const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
       )}>
         {/* Logo Area */}
         <div className="p-6 flex items-center gap-3">
-          <div className="w-8 h-8 bg-[#D97706] rounded-lg flex items-center justify-center shadow-sm">
-            <span className="text-white font-bold text-lg">A</span>
+          <div className="w-8 h-8 flex items-center justify-center flex-shrink-0">
+            <Image 
+              src="/logo.png" 
+              alt="Argume.ai" 
+              width={32} 
+              height={32}
+              className="w-full h-full object-contain"
+            />
           </div>
           <span className="font-bold text-slate-800 text-lg tracking-tight">Argume.ai</span>
         </div>
