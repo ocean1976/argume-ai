@@ -32,14 +32,26 @@ export const MessageBubble = ({ role, content, model, timestamp }: MessageBubble
         
         <div 
           className={cn(
-            "relative rounded-xl px-4 py-3 text-sm shadow-sm",
+            "relative rounded-xl px-4 py-3 text-sm shadow-sm overflow-hidden",
             isUser 
-              ? "bg-[#F3F4F6] text-slate-800" 
+              ? "bg-[#F3F4F6] text-slate-800 ml-auto" 
               : "bg-white text-slate-800 border border-[#E5E5E5]"
           )}
-          style={!isUser ? { borderLeft: `3px solid ${config.color}` } : {}}
         >
-          <p className="leading-relaxed whitespace-pre-wrap">{content}</p>
+          {/* Sol renkli border - AI mesajları için */}
+          {!isUser && (
+            <div 
+              className="absolute left-0 top-0 bottom-0 w-1 rounded-l-xl"
+              style={{ backgroundColor: config.color }}
+            />
+          )}
+          
+          <p className={cn(
+            "leading-relaxed whitespace-pre-wrap",
+            !isUser && "pl-2"
+          )}>
+            {content}
+          </p>
           
           {timestamp && (
             <div className="text-[10px] text-slate-400 mt-2 text-right">

@@ -91,13 +91,13 @@ export const ChatContainer = () => {
   }
 
   return (
-    <div className="flex flex-col h-full bg-[#F9F8F6]">
-      {/* Messages Area */}
+    <div className="flex flex-col h-full bg-white">
+      {/* Messages Area - Max Width 768px and Centered */}
       <div 
         ref={scrollRef}
-        className="flex-1 overflow-y-auto p-4 md:p-8 space-y-2 scrollbar-thin scrollbar-thumb-slate-200"
+        className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-200"
       >
-        <div className="max-w-3xl mx-auto">
+        <div className="max-w-[768px] mx-auto p-6 space-y-2">
           {messages.map((msg) => (
             <React.Fragment key={msg.id}>
               {msg.is_interjection ? (
