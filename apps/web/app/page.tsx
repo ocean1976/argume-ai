@@ -14,9 +14,11 @@ import {
   ArrowRight,
   BrainCircuit,
   AlertCircle,
-  Loader2
+  Loader2,
+  Play
 } from 'lucide-react'
 import { motion } from 'framer-motion'
+import Link from 'next/link'
 
 export default function LandingPage() {
   const [email, setEmail] = useState('')
@@ -76,9 +78,11 @@ export default function LandingPage() {
               <Button size="lg" className="w-full sm:w-auto" onClick={() => document.getElementById('waitlist')?.scrollIntoView({ behavior: 'smooth' })}>
                 Erken Erişim İçin Katıl <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
-              <Button variant="outline" size="lg" className="w-full sm:w-auto">
-                Nasıl Çalışır?
-              </Button>
+              <Link href="/chat" className="w-full sm:w-auto">
+                <Button variant="outline" size="lg" className="w-full">
+                  <Play className="mr-2 h-4 w-4 fill-current" /> Demo'yu Gör
+                </Button>
+              </Link>
             </div>
           </motion.div>
         </div>

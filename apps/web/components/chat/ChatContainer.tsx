@@ -11,37 +11,47 @@ interface Message {
   id: string
   role: 'user' | 'assistant'
   content: string
-  model?: ModelType
+  model?: ModelType | string
   modelName?: string
   timestamp: string
-  interjection?: string
+  is_interjection?: boolean
+  interjection_type?: string
 }
 
 const MOCK_MESSAGES: Message[] = [
   {
-    id: '1',
-    role: 'user',
-    content: "React'ta state management önerisi?",
-    timestamp: '14:20',
+    id: "1",
+    role: "user",
+    content: "React'ta state management için ne önerirsiniz?",
+    timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
   },
   {
-    id: '2',
-    role: 'assistant',
-    model: 'deepseek',
-    modelName: 'DeepSeek V3',
-    content: "Küçük ve orta ölçekli projeler için Zustand'ı öneririm. Redux'a göre çok daha az boilerplate gerektirir ve öğrenme eğrisi düşüktür.",
-    timestamp: '14:21',
+    id: "2", 
+    role: "assistant",
+    content: "Küçük-orta projeler için Zustand öneriyorum. Minimal API, kolay öğrenme eğrisi ve Redux'a göre çok daha az boilerplate.",
+    model: "deepseek",
+    modelName: "DeepSeek V3",
+    timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
   },
   {
-    id: '3',
-    role: 'assistant',
-    model: 'claude',
-    modelName: 'Claude 3.5 Sonnet',
-    content: "DeepSeek'e katılıyorum, ancak projeniz çok büyükse ve karmaşık veri akışları varsa Redux Toolkit hâlâ endüstri standardıdır. Ayrıca Context API da basit durumlar için yeterli olabilir.",
-    timestamp: '14:21',
-    interjection: "Dikkat: Takım deneyimini ve projenin gelecekteki ölçeğini de düşünmelisiniz."
+    id: "3",
+    role: "assistant", 
+    content: "DeepSeek'e katılıyorum. Ancak büyük ekiplerde Redux Toolkit da değerlendirilebilir - DevTools ve middleware ekosistemi güçlü.",
+    model: "claude",
+    modelName: "Claude 3.5 Sonnet",
+    timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+  },
+  {
+    id: "4",
+    role: "assistant",
+    content: "Dikkat: Takımda Redux deneyimi varsa öğrenme eğrisi avantajı olabilir. Karar vermeden önce takım yetkinliklerini değerlendirin.",
+    model: "claude",
+    modelName: "Claude 3 Opus",
+    is_interjection: true,
+    interjection_type: "RISK_WARNING",
+    timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
   }
-]
+];
 
 export const ChatContainer = () => {
   const [messages, setMessages] = useState<Message[]>(MOCK_MESSAGES)
@@ -94,15 +104,16 @@ export const ChatContainer = () => {
         <div className="max-w-3xl mx-auto">
           {messages.map((msg) => (
             <React.Fragment key={msg.id}>
-              <MessageBubble
-                role={msg.role}
-                content={msg.content}
-                model={msg.model}
-                modelName={msg.modelName}
-                timestamp={msg.timestamp}
-              />
-              {msg.interjection && (
-                <InterjectionNote content={msg.interjection} />
+              {msg.is_interjection ? (
+                <InterjectionNote content={msg.content} />
+              ) : (
+                <MessageBubble
+                  role={msg.role}
+                  content={msg.content}
+                  model={msg.model as ModelType}
+                  modelName={msg.modelName}
+                  timestamp={msg.timestamp}
+                />
               )}
             </React.Fragment>
           ))}
