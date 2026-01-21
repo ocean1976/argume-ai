@@ -2,22 +2,13 @@
 module.exports = {
   content: [
     "./app/**/*.{js,ts,jsx,tsx,mdx}",
-    "./pages/**/*.{js,ts,jsx,tsx,mdx}",
     "./components/**/*.{js,ts,jsx,tsx,mdx}",
   ],
   theme: {
     extend: {
       colors: {
-        background: "var(--background)",
-        foreground: "var(--foreground)",
-        primary: {
-          DEFAULT: "#D97706",
-          foreground: "#FFFFFF",
-        },
-        secondary: {
-          DEFAULT: "#F3F4F6",
-          foreground: "#1D1D1D",
-        },
+        background: "#F9F8F6",
+        foreground: "#1D1D1D",
       },
     },
   },
