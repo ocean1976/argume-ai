@@ -14,22 +14,22 @@ export const InterjectionNote = ({ content, modelName, type = 'GENERAL' }: Inter
   const getIcon = () => {
     switch (type) {
       case 'RISK_WARNING':
-        return <AlertTriangle className="h-4 w-4 text-[#D97706]" />
+        return <AlertTriangle className="h-4 w-4" />
       case 'INFO':
-        return <Info className="h-4 w-4 text-[#3B82F6]" />
+        return <Info className="h-4 w-4" />
       default:
-        return <Lightbulb className="h-4 w-4 text-[#F59E0B]" />
+        return <Lightbulb className="h-4 w-4" />
     }
   }
 
   const getLabel = () => {
     switch (type) {
       case 'RISK_WARNING':
-        return '⚠️ Uyarı'
+        return 'Uyarı'
       case 'INFO':
-        return 'ℹ️ Bilgi'
+        return 'Bilgi'
       default:
-        return '💡 Dipnot'
+        return 'Dipnot'
     }
   }
 
@@ -48,15 +48,15 @@ export const InterjectionNote = ({ content, modelName, type = 'GENERAL' }: Inter
     <motion.div
       initial={{ opacity: 0, x: 20 }}
       animate={{ opacity: 1, x: 0 }}
-      className={`ml-8 my-4 border-l-4 rounded-r-xl p-4 shadow-sm max-w-[85%] ${getColors()}`}
+      className={`ml-12 my-6 border-l-4 rounded-r-2xl p-5 shadow-sm max-w-[80%] ${getColors()}`}
     >
-      <div className="flex items-center gap-2 mb-2">
+      <div className="flex items-center gap-2 mb-2 opacity-80">
         {getIcon()}
-        <span className="text-xs font-bold">
+        <span className="text-[11px] font-bold uppercase tracking-wider">
           {getLabel()} • {modelName || 'AI'}
         </span>
       </div>
-      <p className="text-sm leading-relaxed opacity-90">
+      <p className="text-[14px] leading-relaxed font-medium">
         {content}
       </p>
     </motion.div>
