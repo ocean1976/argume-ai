@@ -1,6 +1,6 @@
 import React from 'react'
 import { cn } from '@/lib/utils'
-import { Bot, Sparkles, Zap, Brain, Cpu, Globe } from 'lucide-react'
+import { Bot, Sparkles, Zap, Brain, Cpu, User } from 'lucide-react'
 
 export type ModelType = 'gpt' | 'claude' | 'gemini' | 'deepseek' | 'grok' | 'user'
 
@@ -9,13 +9,13 @@ interface ModelAvatarProps {
   className?: string
 }
 
-const modelConfig = {
-  gpt: { color: 'bg-emerald-500', icon: Bot, label: 'GPT' },
-  claude: { color: 'bg-orange-500', icon: Sparkles, label: 'Claude' },
-  gemini: { color: 'bg-blue-500', icon: Zap, label: 'Gemini' },
-  deepseek: { color: 'bg-purple-500', icon: Brain, label: 'DeepSeek' },
-  grok: { color: 'bg-red-500', icon: Cpu, label: 'Grok' },
-  user: { color: 'bg-indigo-600', icon: Globe, label: 'Siz' },
+export const modelConfig = {
+  gpt: { color: '#10B981', icon: Bot, label: 'GPT-4o' },
+  claude: { color: '#D97706', icon: Sparkles, label: 'Claude 3.5' },
+  gemini: { color: '#3B82F6', icon: Zap, label: 'Gemini 1.5' },
+  deepseek: { color: '#8B5CF6', icon: Brain, label: 'DeepSeek V3' },
+  grok: { color: '#EF4444', icon: Cpu, label: 'Grok-2' },
+  user: { color: '#6B5E4C', icon: User, label: 'Siz' },
 }
 
 export const ModelAvatar = ({ model, className }: ModelAvatarProps) => {
@@ -23,12 +23,14 @@ export const ModelAvatar = ({ model, className }: ModelAvatarProps) => {
   const Icon = config.icon
 
   return (
-    <div className={cn(
-      "flex h-8 w-8 shrink-0 select-none items-center justify-center rounded-lg text-white shadow-sm",
-      config.color,
-      className
-    )}>
-      <Icon className="h-5 w-5" />
+    <div 
+      className={cn(
+        "flex h-6 w-6 shrink-0 select-none items-center justify-center rounded-md text-white shadow-sm",
+        className
+      )}
+      style={{ backgroundColor: config.color }}
+    >
+      <Icon className="h-3.5 w-3.5" />
     </div>
   )
 }

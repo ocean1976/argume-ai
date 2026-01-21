@@ -11,11 +11,11 @@ interface Message {
   id: string
   role: 'user' | 'assistant'
   content: string
-  model?: ModelType | string
-  modelName?: string
+  model?: ModelType
   timestamp: string
   is_interjection?: boolean
   interjection_type?: string
+  modelName?: string
 }
 
 const MOCK_MESSAGES: Message[] = [
@@ -23,23 +23,21 @@ const MOCK_MESSAGES: Message[] = [
     id: "1",
     role: "user",
     content: "React'ta state management için ne önerirsiniz?",
-    timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    timestamp: "09:30 PM"
   },
   {
     id: "2", 
     role: "assistant",
     content: "Küçük-orta projeler için Zustand öneriyorum. Minimal API, kolay öğrenme eğrisi ve Redux'a göre çok daha az boilerplate.",
     model: "deepseek",
-    modelName: "DeepSeek V3",
-    timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    timestamp: "09:31 PM"
   },
   {
     id: "3",
     role: "assistant", 
     content: "DeepSeek'e katılıyorum. Ancak büyük ekiplerde Redux Toolkit da değerlendirilebilir - DevTools ve middleware ekosistemi güçlü.",
     model: "claude",
-    modelName: "Claude 3.5 Sonnet",
-    timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    timestamp: "09:32 PM"
   },
   {
     id: "4",
@@ -49,7 +47,7 @@ const MOCK_MESSAGES: Message[] = [
     modelName: "Claude 3 Opus",
     is_interjection: true,
     interjection_type: "RISK_WARNING",
-    timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    timestamp: "09:32 PM"
   }
 ];
 
@@ -78,7 +76,6 @@ export const ChatContainer = () => {
     
     setMessages(prev => [...prev, newUserMessage])
     
-    // Simulate AI response
     setIsTyping(true)
     setTimeout(() => {
       setIsTyping(false)
@@ -86,7 +83,6 @@ export const ChatContainer = () => {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
         model: 'gpt',
-        modelName: 'GPT-4o',
         content: "Bu harika bir soru! State management seçimi projenizin ihtiyaçlarına göre değişir. Zustand modern bir tercih olsa da, yerleşik çözümleri (Context API) küçümsememek gerekir.",
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       }
@@ -95,23 +91,22 @@ export const ChatContainer = () => {
   }
 
   return (
-    <div className="flex flex-col h-full bg-slate-950">
+    <div className="flex flex-col h-full bg-[#F9F8F6]">
       {/* Messages Area */}
       <div 
         ref={scrollRef}
-        className="flex-1 overflow-y-auto p-4 md:p-6 space-y-2 scrollbar-thin scrollbar-thumb-slate-800"
+        className="flex-1 overflow-y-auto p-4 md:p-8 space-y-2 scrollbar-thin scrollbar-thumb-slate-200"
       >
         <div className="max-w-3xl mx-auto">
           {messages.map((msg) => (
             <React.Fragment key={msg.id}>
               {msg.is_interjection ? (
-                <InterjectionNote content={msg.content} />
+                <InterjectionNote content={msg.content} modelName={msg.modelName} />
               ) : (
                 <MessageBubble
                   role={msg.role}
                   content={msg.content}
-                  model={msg.model as ModelType}
-                  modelName={msg.modelName}
+                  model={msg.model}
                   timestamp={msg.timestamp}
                 />
               )}
@@ -122,9 +117,7 @@ export const ChatContainer = () => {
       </div>
 
       {/* Input Area */}
-      <div className="max-w-3xl w-full mx-auto">
-        <ChatInput onSend={handleSend} disabled={isTyping} />
-      </div>
+      <ChatInput onSend={handleSend} disabled={isTyping} />
     </div>
   )
 }

@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
-import { Send, Plus } from 'lucide-react'
+import { ArrowUp } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface ChatInputProps {
@@ -26,7 +26,6 @@ export const ChatInput = ({ onSend, disabled }: ChatInputProps) => {
     }
   }
 
-  // Auto-resize textarea
   useEffect(() => {
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto'
@@ -35,12 +34,8 @@ export const ChatInput = ({ onSend, disabled }: ChatInputProps) => {
   }, [input])
 
   return (
-    <div className="relative flex items-end gap-2 p-4 bg-slate-900/50 backdrop-blur-md border-t border-slate-800">
-      <Button variant="ghost" size="sm" className="h-10 w-10 rounded-full p-0 shrink-0">
-        <Plus className="h-5 w-5" />
-      </Button>
-      
-      <div className="relative flex-1">
+    <div className="sticky bottom-0 w-full bg-[#F9F8F6] pt-2 pb-6 px-4">
+      <div className="max-w-3xl mx-auto relative flex items-end gap-2 bg-white border border-[#E5E5E5] rounded-[24px] p-2 shadow-sm focus-within:ring-1 focus-within:ring-slate-200 transition-all">
         <textarea
           ref={textareaRef}
           rows={1}
@@ -50,7 +45,7 @@ export const ChatInput = ({ onSend, disabled }: ChatInputProps) => {
           placeholder="Mesajınızı yazın..."
           disabled={disabled}
           className={cn(
-            "w-full resize-none rounded-2xl border border-slate-700 bg-slate-800 px-4 py-2.5 pr-12 text-sm text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50",
+            "flex-1 resize-none bg-transparent px-4 py-2 text-sm text-slate-800 focus:outline-none disabled:opacity-50",
             "max-h-[200px] overflow-y-auto"
           )}
         />
@@ -58,9 +53,9 @@ export const ChatInput = ({ onSend, disabled }: ChatInputProps) => {
           size="sm"
           onClick={handleSend}
           disabled={!input.trim() || disabled}
-          className="absolute right-1.5 bottom-1.5 h-7 w-7 rounded-full p-0"
+          className="h-8 w-8 rounded-full p-0 bg-indigo-600 hover:bg-indigo-700 text-white shrink-0 mb-0.5 mr-0.5"
         >
-          <Send className="h-4 w-4" />
+          <ArrowUp className="h-4 w-4" />
         </Button>
       </div>
     </div>

@@ -3,18 +3,36 @@
 @tailwind utilities;
 
 :root {
-  --background: #0f172a;
-  --foreground: #f8fafc;
+  --background: #F9F8F6;
+  --foreground: #1D1D1D;
+  --card: #FFFFFF;
+  --card-foreground: #1D1D1D;
+  --popover: #FFFFFF;
+  --popover-foreground: #1D1D1D;
+  --primary: #D97706;
+  --primary-foreground: #FFFFFF;
+  --secondary: #F3F4F6;
+  --secondary-foreground: #1D1D1D;
+  --muted: #F3F4F6;
+  --muted-foreground: #6B7280;
+  --accent: #F3F4F6;
+  --accent-foreground: #1D1D1D;
+  --destructive: #EF4444;
+  --destructive-foreground: #F8FAFC;
+  --border: #E5E5E5;
+  --input: #E5E5E5;
+  --ring: #D97706;
+  --radius: 0.75rem;
 }
 
 body {
+  background-color: var(--background);
   color: var(--foreground);
-  background: var(--background);
   font-family: 'Inter', sans-serif;
 }
 
 @layer utilities {
   .bg-gradient-hero {
-    background: linear-gradient(to bottom right, #0f172a, #1e1b4b, #4c1d95);
+    background: radial-gradient(circle at top right, #E6E1D6 0%, #F9F8F6 100%);
   }
 }
