@@ -3,10 +3,24 @@
 import React, { useState } from 'react'
 import { ChatContainer } from '@/components/chat/ChatContainer'
 import { Sidebar } from '@/components/chat/Sidebar'
-import { Menu, Settings } from 'lucide-react'
+import { Menu, Settings, Share2 } from 'lucide-react'
 
 export default function ChatPage() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
+
+  const handleShare = () => {
+    if (navigator.share) {
+      navigator.share({
+        title: 'Argume.ai Tartışması',
+        text: 'Bu AI tartışmasına bir göz at!',
+        url: window.location.href,
+      }).catch(console.error);
+    } else {
+      // Fallback: Copy to clipboard
+      navigator.clipboard.writeText(window.location.href);
+      alert('Bağlantı kopyalandı!');
+    }
+  }
 
   return (
     <div className="flex h-screen bg-[#F9F8F6] overflow-hidden">
@@ -34,6 +48,13 @@ export default function ChatPage() {
           </div>
           
           <div className="flex items-center gap-2">
+            <button 
+              onClick={handleShare}
+              className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-lg transition-colors border border-[#E5E5E5] bg-white shadow-sm"
+            >
+              <Share2 className="h-4 w-4" />
+              <span className="hidden sm:inline">Paylaş</span>
+            </button>
             <button className="p-2 text-slate-500 hover:bg-slate-100 rounded-lg transition-colors">
               <Settings className="h-5 w-5" />
             </button>

@@ -4,7 +4,7 @@ import React, { useState, useRef, useEffect } from 'react'
 import { MessageBubble } from './MessageBubble'
 import { ChatInput } from './ChatInput'
 import { TypingIndicator } from './TypingIndicator'
-import { InterjectionNote } from './InterjectionNote'
+import { InterjectionNote, InterjectionType } from './InterjectionNote'
 import { ModelType } from './ModelAvatar'
 
 interface Message {
@@ -14,7 +14,7 @@ interface Message {
   model?: ModelType
   timestamp: string
   is_interjection?: boolean
-  interjection_type?: string
+  interjection_type?: InterjectionType
   modelName?: string
 }
 
@@ -48,6 +48,16 @@ const MOCK_MESSAGES: Message[] = [
     is_interjection: true,
     interjection_type: "RISK_WARNING",
     timestamp: "09:32 PM"
+  },
+  {
+    id: "5",
+    role: "assistant",
+    content: "Ek bilgi: Zustand, React Server Components ile de tam uyumlu çalışır.",
+    model: "gpt",
+    modelName: "GPT-4o",
+    is_interjection: true,
+    interjection_type: "INFO",
+    timestamp: "09:33 PM"
   }
 ];
 
@@ -101,7 +111,11 @@ export const ChatContainer = () => {
           {messages.map((msg) => (
             <React.Fragment key={msg.id}>
               {msg.is_interjection ? (
-                <InterjectionNote content={msg.content} modelName={msg.modelName} />
+                <InterjectionNote 
+                  content={msg.content} 
+                  modelName={msg.modelName} 
+                  type={msg.interjection_type} 
+                />
               ) : (
                 <MessageBubble
                   role={msg.role}
