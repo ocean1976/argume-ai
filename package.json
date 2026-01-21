@@ -1,6 +1,11 @@
 {
   "name": "argume-ai",
   "private": true,
+  "engines": {
+    "node": ">=18.0.0",
+    "pnpm": ">=8.0.0"
+  },
+  "packageManager": "pnpm@8.15.4",
   "scripts": {
     "build": "turbo run build",
     "dev": "turbo run dev",
@@ -10,6 +15,5 @@
   "devDependencies": {
     "turbo": "latest",
     "prettier": "^3.2.5"
-  },
-  "packageManager": "pnpm@8.15.4"
+  }
 }
