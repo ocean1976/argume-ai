@@ -5,6 +5,11 @@
 :root {
   --background: #F9F8F6;
   --foreground: #1D1D1D;
+  --primary: #D97706;
+  --primary-foreground: #FFFFFF;
+  --secondary: #F3F4F6;
+  --secondary-foreground: #1D1D1D;
+  --border: #E5E5E5;
 }
 
 body {
@@ -36,4 +41,11 @@ body {
 /* Claude-style smooth transitions */
 * {
   transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+/* Layout helpers */
+.chat-container-max-width {
+  max-width: 768px;
+  margin-left: auto;
+  margin-right: auto;
 }
