@@ -13,19 +13,41 @@ import {
   Github, 
   ArrowRight,
   BrainCircuit,
-  AlertCircle
+  AlertCircle,
+  Loader2
 } from 'lucide-react'
 import { motion } from 'framer-motion'
 
 export default function LandingPage() {
   const [email, setEmail] = useState('')
-  const [submitted, setSubmitted] = useState(false)
+  const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle')
+  const [errorMessage, setErrorMessage] = useState('')
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (email && email.includes('@')) {
-      setSubmitted(true)
+    if (!email || !email.includes('@')) return
+
+    setStatus('loading')
+    setErrorMessage('')
+
+    try {
+      const response = await fetch('/api/waitlist', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Bir hata oluştu.')
+      }
+
+      setStatus('success')
       setEmail('')
+    } catch (error: any) {
+      setStatus('error')
+      setErrorMessage(error.message)
     }
   }
 
@@ -164,17 +186,25 @@ export default function LandingPage() {
             <h2 className="text-3xl lg:text-4xl font-bold mb-4">Erken Erişim</h2>
             <p className="text-slate-400 mb-8">Sınırlı sayıdaki beta kullanıcısından biri olmak için yerini ayırt.</p>
             
-            {!submitted ? (
-              <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto">
-                <Input 
-                  type="email" 
-                  placeholder="E-posta adresiniz" 
-                  required 
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="bg-slate-950 border-slate-700"
-                />
-                <Button type="submit" variant="primary">Katıl</Button>
+            {status !== 'success' ? (
+              <form onSubmit={handleSubmit} className="flex flex-col gap-3 max-w-md mx-auto">
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <Input 
+                    type="email" 
+                    placeholder="E-posta adresiniz" 
+                    required 
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    disabled={status === 'loading'}
+                    className="bg-slate-950 border-slate-700"
+                  />
+                  <Button type="submit" variant="primary" disabled={status === 'loading'}>
+                    {status === 'loading' ? <Loader2 className="h-5 w-5 animate-spin" /> : 'Katıl'}
+                  </Button>
+                </div>
+                {status === 'error' && (
+                  <p className="text-red-400 text-sm mt-2">{errorMessage}</p>
+                )}
               </form>
             ) : (
               <motion.div 
