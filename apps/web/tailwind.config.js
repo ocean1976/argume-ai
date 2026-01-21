@@ -8,14 +8,16 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        primary: "#6366F1",
-        secondary: "#8B5CF6",
-        background: "#0F172A",
-        slate: {
-          50: "#F8FAFC",
-          900: "#0F172A",
+        background: "var(--background)",
+        foreground: "var(--foreground)",
+        primary: {
+          DEFAULT: "#D97706",
+          foreground: "#FFFFFF",
         },
-        accent: "#22D3EE",
+        secondary: {
+          DEFAULT: "#F3F4F6",
+          foreground: "#1D1D1D",
+        },
       },
     },
   },
