@@ -83,7 +83,7 @@ export default function ChatPage() {
                         className="w-full h-full object-contain mix-blend-multiply"
                       />
                     </div>
-                    <h2 className="text-3xl font-serif font-normal text-slate-900">
+                    <h2 className="text-3xl font-serif font-light text-slate-900 tracking-tight">
                       Ready to Argu Me?
                     </h2>
                   </div>
