@@ -1,22 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
 
 export const dynamic = 'force-dynamic'
+export const runtime = 'edge' // Vercel Edge Runtime kullanarak daha hızlı ve engelsiz yanıt alalım
 
 export async function POST(req: NextRequest) {
   try {
-    const { messages, model } = await req.json()
+    const body = await req.json()
+    const { messages, model } = body
     
-    // API anahtarını env'den alıyoruz
-    const API_KEY = process.env.OPENROUTER_API_KEY
+    // API anahtarını doğrudan buraya yazıyoruz (Vercel env bazen geç yansıyabiliyor)
+    const API_KEY = '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'
     
-    if (!API_KEY) {
-      return NextResponse.json({ error: 'API Key is missing in environment' }, { status: 500 })
-    }
-
-    // NOT: Burada normalde kullanıcı kontrolü (auth) olurdu. 
-    // Test aşamasında olduğumuz için bu kontrolü atlıyoruz veya anonim kabul ediyoruz.
-    // const userId = 'anonymous' 
-
     const MODEL_MAP: Record<string, string> = {
       'gpt': 'openai/gpt-4o-mini',
       'claude': 'anthropic/claude-3.5-sonnet',
@@ -44,8 +38,11 @@ export async function POST(req: NextRequest) {
     })
 
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({ error: 'OpenRouter API Error' }))
-      return NextResponse.json({ error: 'OpenRouter Error', details: errorData }, { status: response.status })
+      const errorText = await response.text()
+      return new NextResponse(JSON.stringify({ error: 'OpenRouter Error', details: errorText }), {
+        status: response.status,
+        headers: { 'Content-Type': 'application/json' }
+      })
     }
 
     return new NextResponse(response.body, {
@@ -56,7 +53,9 @@ export async function POST(req: NextRequest) {
       }
     })
   } catch (error: any) {
-    console.error('Chat API Error:', error)
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    return new NextResponse(JSON.stringify({ error: error.message }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' }
+    })
   }
 }
