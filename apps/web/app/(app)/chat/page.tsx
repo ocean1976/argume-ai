@@ -74,14 +74,13 @@ export default function ChatPage() {
               {/* Central Chat Input Area */}
               <div className="w-full">
                              <div className="flex items-center justify-center gap-3 mb-4">
-                    <div className="w-10 h-10 flex items-center justify-center bg-transparent">
+                    <div className="w-10 h-10 flex items-center justify-center bg-transparent overflow-hidden">
                       <Image 
                         src="/logo.png" 
                         alt="Argume" 
                         width={40} 
                         height={40}
-                        className="w-full h-full object-contain"
-                        style={{ filter: 'drop-shadow(none)' }}
+                        className="w-full h-full object-contain mix-blend-multiply"
                       />
                     </div>
                     <h2 className="text-3xl font-serif font-normal text-slate-900">
