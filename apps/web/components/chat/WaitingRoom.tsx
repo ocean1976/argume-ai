@@ -21,7 +21,6 @@ export default function WaitingRoom({
   userMessage,
   tier,
   isActive,
-  onComplete,
 }: WaitingRoomProps) {
   const [jesterMessages, setJesterMessages] = useState<JesterMessageType[]>([])
   const [elapsedTime, setElapsedTime] = useState(0)
@@ -29,26 +28,52 @@ export default function WaitingRoom({
   useEffect(() => {
     if (!isActive) return
 
-    // İlk selamlama mesajı
-    const greetings = [
-      `Harika bir soru! Konseyi topluyorum... 🛡️`,
-      `Bunu tartışmaya değer! Uzmanlar çağrılıyor... 🏛️`,
-      `Derinlemesine bir analiz yapacağız. Biraz sabır... ⏳`,
-      `Bu soru için en iyi beyinleri topladım! 🧠`,
-      `Hmm, bu karmaşık görünüyor. Hazırlanıyoruz... 🤔`,
-    ]
+    // Smart Jester API'sından dinamik yorum al
+    const fetchSmartJesterComment = async () => {
+      try {
+        const response = await fetch('/api/jester', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userMessage })
+        })
 
-    const greeting =
-      greetings[Math.floor(Math.random() * greetings.length)]
+        if (response.ok) {
+          const data = await response.json()
+          if (data.jesterComment) {
+            setJesterMessages([
+              {
+                id: `jester_smart_${Date.now()}`,
+                type: 'greeting',
+                content: data.jesterComment,
+                timestamp: new Date().toISOString(),
+              },
+            ])
+          }
+        }
+      } catch (error) {
+        console.error('Smart Jester error:', error)
+        // Fallback to default greeting
+        const greetings = [
+          `Harika bir soru! Konseyi topluyorum... 🛡️`,
+          `Bunu tartışmaya değer! Uzmanlar çağrılıyor... 🏛️`,
+          `Derinlemesine bir analiz yapacağız. Biraz sabır... ⏳`,
+          `Bu soru için en iyi beyinleri topladım! 🧠`,
+          `Hmm, bu karmaşık görünüyor. Hazırlanıyoruz... 🤔`,
+        ]
 
-    setJesterMessages([
-      {
-        id: `jester_greeting_${Date.now()}`,
-        type: 'greeting',
-        content: greeting,
-        timestamp: new Date().toISOString(),
-      },
-    ])
+        const greeting = greetings[Math.floor(Math.random() * greetings.length)]
+        setJesterMessages([
+          {
+            id: `jester_greeting_${Date.now()}`,
+            type: 'greeting',
+            content: greeting,
+            timestamp: new Date().toISOString(),
+          },
+        ])
+      }
+    }
+
+    fetchSmartJesterComment()
 
     // Timer başlat
     const timer = setInterval(() => {
@@ -101,7 +126,7 @@ export default function WaitingRoom({
       clearInterval(timer)
       timeouts.forEach(timeout => clearTimeout(timeout))
     }
-  }, [isActive, tier])
+  }, [isActive, tier, userMessage])
 
   if (!isActive) return null
 
