@@ -2,7 +2,7 @@
  * Sequential Council Flow - Sıralı Konsey Tartışması
  * 
  * Modeller sırayla konuşur, her biri öncekinin çıktısını bağlam olarak alır.
- * Araya müdahaleler (interjections) asenkron olarak eklenir.
+ * Araya müdahaleler (interjections) asenkron olarak eklenir ve bağlama enjekte edilir.
  */
 
 import {
@@ -20,7 +20,7 @@ export interface CouncilMember {
   interjections: Array<{
     modelId: string
     modelName: string
-    type: 'WARNING' | 'INFO' | 'INSIGHT'
+    type: 'WARNING' | 'INFO' | 'INSIGHT' | 'CONFLICT'
     content: string
   }>
   executionTime: number
@@ -103,28 +103,33 @@ function checkForInterjections(
 ): Array<{
   modelId: string
   modelName: string
-  type: 'WARNING' | 'INFO' | 'INSIGHT'
+  type: 'WARNING' | 'INFO' | 'INSIGHT' | 'CONFLICT'
   content: string
 }> {
   const interjections: Array<{
     modelId: string
     modelName: string
-    type: 'WARNING' | 'INFO' | 'INSIGHT'
+    type: 'WARNING' | 'INFO' | 'INSIGHT' | 'CONFLICT'
     content: string
   }> = []
 
   const responseLength = speakingModelResponse.length
-  const hasRiskKeywords = /risk|tehlike|dikkat|uyarı|hata|sorun/i.test(
+
+  // Tetikleyici Analizi
+  const hasRiskKeywords = /risk|tehlike|dikkat|uyarı|hata|sorun|başarısız|çöküş/i.test(
     speakingModelResponse
   )
-  const hasInfoKeywords = /bilgi|not|ek olarak|ayrıca|bağlam|kaynak/i.test(
+  const hasInfoKeywords = /bilgi|not|ek olarak|ayrıca|bağlam|kaynak|referans|belge/i.test(
     speakingModelResponse
   )
-  const hasConflict = /çatışma|uyuşmazlık|anlaşmazlık|karşıt/i.test(
+  const hasConflict = /çatışma|uyuşmazlık|anlaşmazlık|karşıt|zıt|tutarsız|çelişki/i.test(
+    speakingModelResponse
+  )
+  const hasComplexity = /karmaşık|zor|derin|ileri|teknik|mimarı|tasarım/i.test(
     speakingModelResponse
   )
 
-  // Risk Uyarısı - Prosecutor'ı çağır
+  // 1. Risk Uyarısı - Prosecutor'ı çağır
   if (hasRiskKeywords && responseLength > 100) {
     const prosecutor = getModelByRole('PROSECUTOR')
     if (prosecutor && prosecutor.id !== speakingModelId) {
@@ -133,12 +138,12 @@ function checkForInterjections(
         modelName: prosecutor.name,
         type: 'WARNING',
         content:
-          '⚠️ Risk Uyarısı: Bu noktadaki potansiyel riskleri ve yan etkilerini daha detaylı analiz etmeliyiz.',
+          'Risk Uyarisi: Bu noktadaki potansiyel riskleri, yan etkilerini ve basarisizlik senaryolarini daha detayli analiz etmeliyiz.',
       })
     }
   }
 
-  // Bilgi Ekleme - Librarian'ı çağır
+  // 2. Bilgi Ekleme - Librarian'ı çağır
   if (hasInfoKeywords && responseLength > 150) {
     const librarian = getModelByRole('LIBRARIAN')
     if (librarian && librarian.id !== speakingModelId) {
@@ -147,27 +152,41 @@ function checkForInterjections(
         modelName: librarian.name,
         type: 'INFO',
         content:
-          'ℹ️ Ek Bağlam: Bu konuyla ilgili ek bilgi ve kaynaklar ekleyebilirim.',
+          'Ek Baglamı: Bu konuyla ilgili ek bilgi, kaynaklar ve referanslar ekleyebilirim. Lutfen devam et, ben de ekleyecegim.',
       })
     }
   }
 
-  // Çatışma Çözümü - High Judge'ı çağır
+  // 3. Çatışma Çözümü - High Judge'ı çağır
   if (hasConflict) {
     const judge = getModelByRole('HIGH_JUDGE')
     if (judge && judge.id !== speakingModelId) {
       interjections.push({
         modelId: judge.id,
         modelName: judge.name,
-        type: 'INSIGHT',
+        type: 'CONFLICT',
         content:
-          '⚖️ Etik Perspektif: Bu çatışmayı çözmek için etik ve dengeli bir yaklaşım önerebilirim.',
+          'Etik Perspektif: Bu catismayi cozmek icin dengeli ve etik bir yaklasim onerebilirim. Her iki tarafin da hakli noktalari var.',
       })
     }
   }
 
-  // Yaratıcı Fikir - Visionary'yi çağır (düşük olasılıkla)
-  if (responseLength > 200 && Math.random() < 0.4) {
+  // 4. Karmaşıklık Analizi - Architect'i çağır
+  if (hasComplexity && responseLength > 200) {
+    const architect = getModelByRole('ARCHITECT')
+    if (architect && architect.id !== speakingModelId) {
+      interjections.push({
+        modelId: architect.id,
+        modelName: architect.name,
+        type: 'INSIGHT',
+        content:
+          'Mimari Perspektif: Bu karmasik yapıyı daha iyi organize edebiliriz. Moduler bir yaklasim onerebilirim.',
+      })
+    }
+  }
+
+  // 5. Yaratıcı Fikir - Visionary'yi çağır
+  if (responseLength > 250 && Math.random() < 0.35) {
     const visionary = getModelByRole('VISIONARY')
     if (visionary && visionary.id !== speakingModelId) {
       interjections.push({
@@ -175,7 +194,7 @@ function checkForInterjections(
         modelName: visionary.name,
         type: 'INSIGHT',
         content:
-          '💡 Yaratıcı Bakış: Bu soruna tamamen farklı bir açıdan yaklaşabiliriz.',
+          'Yaratici Bakis: Bu soruna tamamen farkli bir acidan yaklasabiliriz. Yeni bir perspektif sunabilirim.',
       })
     }
   }
@@ -184,13 +203,31 @@ function checkForInterjections(
 }
 
 /**
+ * Bağlam Enjeksiyonu - Müdahaleleri bir sonraki modelin bağlamına ekle
+ */
+function injectInterjectionContext(
+  interjections: Array<{
+    modelId: string
+    modelName: string
+    type: string
+    content: string
+  }>
+): string {
+  if (interjections.length === 0) return ''
+
+  let contextMessage = '\n[MUDAHALELER - Lutfen dikkate al]\n'
+
+  for (const interjection of interjections) {
+    contextMessage += `\n${interjection.modelName} (${interjection.type}): ${interjection.content}`
+  }
+
+  contextMessage += '\n\n[Baglamda enjekte edildi - Yukaridaki mudahaleleri goz onunde bulundurarak yanit ver]'
+
+  return contextMessage
+}
+
+/**
  * Sıralı Konsey Tartışması - Ana Fonksiyon
- * 
- * Bu fonksiyon:
- * 1. Modelleri sıraya koyar
- * 2. Her modeli sırayla çalıştırır
- * 3. Müdahaleleri tetikler
- * 4. Sonunda sentez yapar
  */
 export async function executeSequentialCouncil(
   userMessage: string,
@@ -210,21 +247,28 @@ export async function executeSequentialCouncil(
       .join(' -> ')}`
   )
 
-  // 2. Her modeli sırayla çalıştır (simüle)
+  // 2. Her modeli sırayla çalıştır
   const responses: CouncilMember[] = []
   let previousResponse = ''
+  let accumulatedInterjections: Array<{
+    modelId: string
+    modelName: string
+    type: string
+    content: string
+  }> = []
 
   for (let i = 0; i < councilMembers.length; i++) {
     const model = councilMembers[i]
     const memberStartTime = Date.now()
 
-    // Bağlam oluştur: Önceki modelin çıktısı + konuşma geçmişi
+    // Bağlam oluştur: Önceki modelin çıktısı + mudahale bağlamı
+    const injectedContext = injectInterjectionContext(accumulatedInterjections)
     const context = previousResponse
-      ? `Önceki tartışma:\n${previousResponse}\n\nYeni katkı:`
+      ? `Onceki tartisma:\n${previousResponse}\n${injectedContext}\n\nYeni katkı:`
       : ''
 
-    // Mock yanıt (gerçek uygulamada API çağrısı yapılacak)
-    const mockResponse = `[${model.name}] Yanıt: ${userMessage.substring(0, 40)}... ${context.substring(0, 50)}`
+    // Mock yanıt
+    const mockResponse = `[${model.name}] Yanit: ${userMessage.substring(0, 40)}... ${context.substring(0, 50)}`
 
     previousResponse += `\n${model.name}: ${mockResponse}`
 
@@ -235,8 +279,11 @@ export async function executeSequentialCouncil(
       councilMembers
     )
 
+    // Müdahaleleri birikdir (bir sonraki modele aktarılacak)
+    accumulatedInterjections = interjections
+
     const executionTime = Date.now() - memberStartTime
-    const tokenCount = Math.ceil(mockResponse.length / 4) // Rough estimate
+    const tokenCount = Math.ceil(mockResponse.length / 4)
     const cost = (tokenCount / 1_000_000) * model.costPerMTok
 
     responses.push({
@@ -254,11 +301,11 @@ export async function executeSequentialCouncil(
     )
   }
 
-  // 3. Sentez (Synthesis) - Tüm argümanları toplayıp son söz
+  // 3. Sentez (Synthesis)
   const synthesizer = getModelByRole('SYNTHESIZER')
   const synthesisResponse = synthesizer
-    ? `[${synthesizer.name}] Sentez: Tüm görüşleri değerlendirerek, en uygun çözüm şudur...`
-    : 'Tartışma tamamlandı.'
+    ? `[${synthesizer.name}] Sentez: Tum gorusleri degerlendirerek, en uygun cozum sudur...`
+    : 'Tartisma tamamlandi.'
 
   const totalExecutionTime = Date.now() - startTime
   const totalCost = responses.reduce((sum, r) => sum + r.cost, 0)
@@ -280,8 +327,6 @@ export async function saveCouncilDiscussionToDatabase(
   conversationId: string,
   flow: SequentialCouncilFlow
 ) {
-  // Bu fonksiyon, tartışmanın tamamını Supabase'e kaydetmek için kullanılacak
-  // Şimdilik mock
   console.log(
     `[Database] Saving council discussion to conversation ${conversationId}`
   )
