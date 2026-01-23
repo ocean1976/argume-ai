@@ -321,6 +321,39 @@ export async function executeSequentialCouncil(
 }
 
 /**
+ * Synthesis Prompt - Sentezleyici için özel talimatlar
+ */
+function buildSynthesisPrompt(
+  councilResponses: CouncilMember[],
+  userMessage: string
+): string {
+  const responsesSummary = councilResponses
+    .map(
+      (r, i) =>
+        `${i + 1}. ${r.model.name}: ${r.response.substring(0, 200)}...`
+    )
+    .join('\n\n')
+
+  return `
+Sen bir Konsey Hakem Modelisin (Synthesizer). Görevin:
+
+1. ANALIZ: Yukaridaki tum model yanitlarini dikkatle oku ve analiz et.
+2. ÇATIŞMA ÇÖZÜMÜ: Eğer modeller arasında uyuşmazlık varsa, en mantıklı argümanı öne çıkar.
+3. UZLAŞMA: Tüm görüşleri dikkate alarak en iyi çözümü bul.
+4. KARAR: Nihai kararını açık ve net bir şekilde sun.
+
+ORİJİNAL SORU:
+${userMessage}
+
+MODEL YANITLARI:
+${responsesSummary}
+
+Lütfen tüm bu yanıtları değerlendirerek en iyi, en dengeli ve en doğru sentezi oluştur.
+Sonucunu "👔 KONSEY KARARI" başlığı altında sun.
+`
+}
+
+/**
  * Konsey Tartışmasını Supabase'e kaydet
  */
 export async function saveCouncilDiscussionToDatabase(

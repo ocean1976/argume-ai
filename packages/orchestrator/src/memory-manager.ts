@@ -22,6 +22,7 @@ export interface Message {
 export interface MemoryContext {
   fullContext: Message[] // Son 5 mesaj
   briefContext: string | null // Eski mesajların özeti
+  synthesisContext: string | null // Son sentez sonucu (en yuksek oncelik)
   totalMessageCount: number
 }
 

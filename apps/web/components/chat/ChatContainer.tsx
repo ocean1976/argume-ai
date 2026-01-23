@@ -6,6 +6,7 @@ import { ChatInput } from './ChatInput'
 import { TypingIndicator } from './TypingIndicator'
 import { InterjectionNote, InterjectionType } from './InterjectionNote'
 import { ModelType } from './ModelAvatar'
+import WaitingRoom from './WaitingRoom'
 import { 
   createConversation, 
   addMessage, 
@@ -72,6 +73,9 @@ export const ChatContainer = () => {
   const [isTyping, setIsTyping] = useState(false)
   const [conversationId, setConversationId] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [showWaitingRoom, setShowWaitingRoom] = useState(false)
+  const [currentTier, setCurrentTier] = useState<1 | 2 | 3>(1)
+  const [lastUserMessage, setLastUserMessage] = useState('')
   const scrollRef = useRef<HTMLDivElement>(null)
 
   // Sayfa açıldığında yeni konuşma oluştur ve geçmişi yükle
@@ -109,7 +113,27 @@ export const ChatContainer = () => {
 
   useEffect(() => {
     scrollToBottom()
-  }, [messages, isTyping])
+  }, [messages, isTyping, showWaitingRoom])
+
+  const analyzeTier = (message: string): 1 | 2 | 3 => {
+    // Basit heuristic: kelime sayısı ve teknik terimler
+    const wordCount = message.split(' ').length
+    const technicalTerms = [
+      'algoritma', 'mimari', 'tasarım', 'etik', 'analiz', 'karmaşık',
+      'algorithm', 'architecture', 'design', 'ethics', 'analysis', 'complex',
+      'yapı', 'strateji', 'sistem', 'model', 'framework', 'pattern'
+    ]
+    const hasTechnicalTerms = technicalTerms.some(term => 
+      message.toLowerCase().includes(term)
+    )
+
+    if (wordCount > 30 || hasTechnicalTerms) {
+      return 3 // Uzman seviye
+    } else if (wordCount > 15) {
+      return 2 // Orta seviye
+    }
+    return 1 // Basit seviye
+  }
 
   const handleSend = async (content: string) => {
     if (!conversationId) return
@@ -123,6 +147,7 @@ export const ChatContainer = () => {
     }
     
     setMessages(prev => [...prev, newUserMessage])
+    setLastUserMessage(content)
 
     // Kullanıcı mesajını Supabase'e kaydet
     await addMessage(conversationId, 'user', content)
@@ -131,6 +156,15 @@ export const ChatContainer = () => {
     if (messages.length === 0) {
       const title = content.substring(0, 50) + (content.length > 50 ? '...' : '')
       await updateConversation(conversationId, { title })
+    }
+
+    // Sorunun karmaşıklığını analiz et ve Tier belirle
+    const tier = analyzeTier(content)
+    setCurrentTier(tier)
+    
+    // Waiting Room'u göster (Tier 2 ve 3 için)
+    if (tier >= 2) {
+      setShowWaitingRoom(true)
     }
 
     // API çağrısı yap
@@ -223,6 +257,9 @@ export const ChatContainer = () => {
         }
       }
 
+      // Waiting Room'u kapat
+      setShowWaitingRoom(false)
+
       // Streaming tamamlandığında final içeriği Supabase'e kaydet
       if (dbMessageId && fullContent) {
         await updateConversation(conversationId, {
@@ -234,6 +271,7 @@ export const ChatContainer = () => {
     } catch (error) {
       console.error('API error:', error)
       setIsTyping(false)
+      setShowWaitingRoom(false)
       
       // Fallback to mock response
       const aiResponse: Message = {
@@ -294,6 +332,16 @@ export const ChatContainer = () => {
               )}
             </React.Fragment>
           ))}
+          
+          {/* Waiting Room - Jester Mesajları */}
+          {showWaitingRoom && (
+            <WaitingRoom 
+              userMessage={lastUserMessage}
+              tier={currentTier}
+              isActive={showWaitingRoom}
+            />
+          )}
+          
           {isTyping && <TypingIndicator modelName="AI Model" />}
         </div>
       </div>
