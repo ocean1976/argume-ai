@@ -50,13 +50,13 @@ export const InterjectionNote = ({ content, modelName, type = 'GENERAL' }: Inter
       animate={{ opacity: 1, x: 0 }}
       className={`ml-12 my-6 border-l-4 rounded-r-2xl p-5 shadow-sm max-w-[80%] ${getColors()}`}
     >
-      <div className="flex items-center gap-2 mb-2 opacity-80">
+      <div className="flex items-center gap-2 mb-3 opacity-85">
         {getIcon()}
-        <span className="text-[11px] font-bold uppercase tracking-wider">
+        <span className="text-xs font-bold uppercase tracking-wider">
           {getLabel()} • {modelName || 'AI'}
         </span>
       </div>
-      <p className="text-[14px] leading-relaxed font-medium">
+      <p className="text-base leading-relaxed font-medium">
         {content}
       </p>
     </motion.div>

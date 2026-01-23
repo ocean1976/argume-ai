@@ -45,7 +45,7 @@ export const ChatInput = ({ onSend, disabled }: ChatInputProps) => {
             placeholder="Mesajınızı yazın..."
             disabled={disabled}
             className={cn(
-              "flex-1 resize-none bg-transparent px-2 py-1 text-sm text-slate-800 placeholder-slate-400 focus:outline-none disabled:opacity-50",
+              "flex-1 resize-none bg-transparent px-3 py-2 text-base text-slate-800 placeholder-slate-400 focus:outline-none disabled:opacity-50",
               "max-h-[200px] overflow-y-auto"
             )}
           />

@@ -28,7 +28,7 @@ export default function ChatPage() {
       <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
 
       {/* Main Chat Area */}
-      <main className="flex-1 flex flex-col relative min-w-0 bg-white">
+      <main className="flex-1 flex flex-col relative min-w-0 bg-[#F9F8F6]">
         {/* Header */}
         <header className="flex items-center justify-between px-6 py-4 border-b border-[#E5E5E5] bg-white/80 backdrop-blur-md sticky top-0 z-30 shadow-sm">
           <div className="flex items-center gap-4">

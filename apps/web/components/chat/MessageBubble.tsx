@@ -26,13 +26,13 @@ export const MessageBubble = ({ role, content, model, timestamp }: MessageBubble
     >
       <div className={cn(
         "flex flex-col",
-        isUser ? "max-w-[75%] items-end" : "max-w-[85%] items-start"
+        isUser ? "max-w-[70%] items-end" : "max-w-[80%] items-start"
       )}>
         {!isUser && model && <ModelBadge model={model} />}
         
         <div 
           className={cn(
-            "relative rounded-2xl px-5 py-4 text-[15px] shadow-sm transition-shadow hover:shadow-md",
+            "relative rounded-2xl px-6 py-4 text-base shadow-sm transition-shadow hover:shadow-md",
             isUser 
               ? "bg-[#F3F4F6] text-slate-800 border border-[#E5E5E5] rounded-tr-none" 
               : "bg-white text-slate-800 border border-[#E5E5E5] rounded-tl-none"
@@ -41,21 +41,21 @@ export const MessageBubble = ({ role, content, model, timestamp }: MessageBubble
           {/* Sol renkli border - Sadece AI mesajları için */}
           {!isUser && (
             <div 
-              className="absolute left-0 top-0 bottom-0 w-[4px] rounded-l-2xl"
+              className="absolute left-0 top-0 bottom-0 w-[3px] rounded-l-2xl"
               style={{ backgroundColor: config.color }}
             />
           )}
           
           <p className={cn(
-            "leading-relaxed whitespace-pre-wrap",
-            !isUser && "pl-2"
+            "leading-relaxed whitespace-pre-wrap text-base",
+            !isUser && "pl-3"
           )}>
             {content}
           </p>
           
           {timestamp && (
             <div className={cn(
-              "text-[10px] mt-2 text-right font-medium opacity-40 select-none",
+              "text-xs mt-3 text-right font-medium opacity-50 select-none",
               isUser ? "text-slate-600" : "text-slate-500"
             )}>
               {timestamp}

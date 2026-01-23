@@ -61,9 +61,18 @@ const MOCK_MESSAGES: Message[] = [
   }
 ];
 
+const MODEL_MAPPING: Record<string, ModelType> = {
+  'deepseek/deepseek-chat': 'deepseek',
+  'openai/gpt-4-turbo': 'gpt',
+  'claude-3-opus': 'claude',
+  'google/gemini-2.0-flash-exp': 'gemini',
+  'grok-2': 'grok'
+}
+
 export const ChatContainer = () => {
   const [messages, setMessages] = useState<Message[]>(MOCK_MESSAGES)
   const [isTyping, setIsTyping] = useState(false)
+  const [useRealAPI, setUseRealAPI] = useState(false)
   const scrollRef = useRef<HTMLDivElement>(null)
 
   const scrollToBottom = () => {
@@ -76,7 +85,7 @@ export const ChatContainer = () => {
     scrollToBottom()
   }, [messages, isTyping])
 
-  const handleSend = (content: string) => {
+  const handleSend = async (content: string) => {
     const newUserMessage: Message = {
       id: Date.now().toString(),
       role: 'user',
@@ -86,28 +95,122 @@ export const ChatContainer = () => {
     
     setMessages(prev => [...prev, newUserMessage])
     
+    if (!useRealAPI) {
+      // Mock response
+      setIsTyping(true)
+      setTimeout(() => {
+        setIsTyping(false)
+        const aiResponse: Message = {
+          id: (Date.now() + 1).toString(),
+          role: 'assistant',
+          model: 'gpt',
+          content: "Bu harika bir soru! State management seçimi projenizin ihtiyaçlarına göre değişir. Zustand modern bir tercih olsa da, yerleşik çözümleri (Context API) küçümsememek gerekir.",
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        }
+        setMessages(prev => [...prev, aiResponse])
+      }, 2000)
+    } else {
+      // Real API call with streaming
+      await callOpenRouterAPI(content)
+    }
+  }
+
+  const callOpenRouterAPI = async (userMessage: string) => {
     setIsTyping(true)
-    setTimeout(() => {
+    try {
+      const conversationMessages = messages
+        .filter(m => !m.is_interjection)
+        .map(m => ({
+          role: m.role,
+          content: m.content
+        }))
+        .concat([{ role: 'user', content: userMessage }])
+
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          messages: conversationMessages,
+          model: 'deepseek/deepseek-chat'
+        })
+      })
+
+      if (!response.ok) {
+        throw new Error('API request failed')
+      }
+
+      const reader = response.body?.getReader()
+      if (!reader) throw new Error('No response body')
+
+      const decoder = new TextDecoder()
+      let fullContent = ''
+      const aiMessageId = (Date.now() + 1).toString()
+      let messageAdded = false
+
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+
+        const chunk = decoder.decode(value)
+        const lines = chunk.split('\n')
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            try {
+              const data = JSON.parse(line.slice(6))
+              if (data.choices?.[0]?.delta?.content) {
+                fullContent += data.choices[0].delta.content
+
+                if (!messageAdded) {
+                  const aiResponse: Message = {
+                    id: aiMessageId,
+                    role: 'assistant',
+                    model: 'deepseek',
+                    content: fullContent,
+                    timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                  }
+                  setMessages(prev => [...prev, aiResponse])
+                  messageAdded = true
+                } else {
+                  setMessages(prev =>
+                    prev.map(m =>
+                      m.id === aiMessageId ? { ...m, content: fullContent } : m
+                    )
+                  )
+                }
+              }
+            } catch (e) {
+              // Ignore parsing errors
+            }
+          }
+        }
+      }
+
       setIsTyping(false)
+    } catch (error) {
+      console.error('API error:', error)
+      setIsTyping(false)
+      
+      // Fallback to mock response
       const aiResponse: Message = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
         model: 'gpt',
-        content: "Bu harika bir soru! State management seçimi projenizin ihtiyaçlarına göre değişir. Zustand modern bir tercih olsa da, yerleşik çözümleri (Context API) küçümsememek gerekir.",
+        content: "API bağlantısında bir hata oluştu. Lütfen OpenRouter API anahtarınızı kontrol edin.",
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       }
       setMessages(prev => [...prev, aiResponse])
-    }, 2000)
+    }
   }
 
   return (
-    <div className="flex flex-col h-full bg-white">
-      {/* Messages Area - Max Width 768px and Centered */}
+    <div className="flex flex-col h-full bg-[#F9F8F6]">
+      {/* Messages Area - Max Width 900px and Centered */}
       <div 
         ref={scrollRef}
-        className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-200"
+        className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-300"
       >
-        <div className="max-w-[768px] mx-auto p-6 space-y-2">
+        <div className="max-w-4xl mx-auto px-6 py-8 space-y-4">
           {messages.map((msg) => (
             <React.Fragment key={msg.id}>
               {msg.is_interjection ? (
@@ -126,7 +229,7 @@ export const ChatContainer = () => {
               )}
             </React.Fragment>
           ))}
-          {isTyping && <TypingIndicator modelName="GPT-4o" />}
+          {isTyping && <TypingIndicator modelName="AI Model" />}
         </div>
       </div>
 
