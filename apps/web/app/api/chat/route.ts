@@ -30,7 +30,7 @@ export async function POST(req: NextRequest) {
       body: JSON.stringify({
         model: selectedModelId,
         messages: messages.map((m: any) => ({ role: m.role, content: m.content })),
-        stream: false, // Daha garantili olması için şimdilik stream'i kapatalım
+        stream: false,
         temperature: 0.7
       })
     })
