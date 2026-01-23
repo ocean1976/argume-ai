@@ -96,7 +96,7 @@ export const Sidebar = ({ isOpen, onClose, currentConversationId, onSelectConver
               className="w-full h-full object-contain"
             />
           </div>
-          <span className="font-bold text-slate-800 text-lg tracking-tight">argu me</span>
+          <span className="font-bold text-slate-800 text-lg tracking-tight">Argu Me</span>
         </div>
 
         {/* New Chat Button */}

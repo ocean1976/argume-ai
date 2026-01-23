@@ -41,7 +41,15 @@ export default function ChatPage() {
               >
                 <Menu className="h-5 w-5" />
               </button>
-              <span className="font-semibold text-slate-800">argu me</span>
+              <div className="w-6 h-6 flex items-center justify-center">
+                <Image 
+                  src="/logo.png" 
+                  alt="Argu Me" 
+                  width={24} 
+                  height={24}
+                  className="w-full h-full object-contain"
+                />
+              </div>
             </div>
             
             <div className="flex items-center gap-3">
@@ -73,7 +81,7 @@ export default function ChatPage() {
                   />
                 </div>
                 <h1 className="text-4xl font-serif font-medium text-slate-800 tracking-tight">
-                  argu me
+                  Ready to Argue Me?
                 </h1>
               </div>
 
