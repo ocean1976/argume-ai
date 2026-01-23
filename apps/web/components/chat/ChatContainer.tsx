@@ -5,7 +5,6 @@ import { MessageBubble } from './MessageBubble'
 import { ChatInput } from './ChatInput'
 import { TypingIndicator } from './TypingIndicator'
 import { ModelType } from './ModelAvatar'
-import { useSearchParams } from 'next/navigation'
 
 export const dynamic = 'force-dynamic'
 
@@ -22,18 +21,6 @@ export const ChatContainer = ({ onFirstMessage, isInitial = false }: { onFirstMe
   const [isTyping, setIsTyping] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
-  const searchParams = useSearchParams()
-  const initialProcessed = useRef(false)
-
-  useEffect(() => {
-    if (!isInitial && !initialProcessed.current) {
-      const q = searchParams.get('q')
-      if (q) {
-        initialProcessed.current = true
-        handleSend(decodeURIComponent(q))
-      }
-    }
-  }, [searchParams, isInitial])
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -45,11 +32,7 @@ export const ChatContainer = ({ onFirstMessage, isInitial = false }: { onFirstMe
     if (!content.trim() || isTyping) return
     setError(null)
 
-    if (isInitial) {
-      window.location.href = `/chat?q=${encodeURIComponent(content.trim())}`
-      return
-    }
-
+    // İlk mesaj gönderildiğinde üst bileşene haber ver (UI değişimi için)
     if (messages.length === 0 && onFirstMessage) onFirstMessage()
 
     const userMsg: Message = {

@@ -3,7 +3,6 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { ArrowUp } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { useRouter } from 'next/navigation'
 
 interface ChatInputProps {
   onSend: (message: string) => void
@@ -14,17 +13,12 @@ interface ChatInputProps {
 export const ChatInput = ({ onSend, disabled, isInitial = false }: ChatInputProps) => {
   const [input, setInput] = useState('')
   const textareaRef = useRef<HTMLTextAreaElement>(null)
-  const router = useRouter()
 
   const handleSend = () => {
     if (!input.trim() || disabled) return
     
-    if (isInitial) {
-      // Ana sayfadaysak doğrudan yönlendir
-      router.push(`/chat?q=${encodeURIComponent(input.trim())}`)
-    } else {
-      onSend(input.trim())
-    }
+    // Doğrudan onSend fonksiyonunu çağır, yönlendirme yapma
+    onSend(input.trim())
     setInput('')
   }
 
