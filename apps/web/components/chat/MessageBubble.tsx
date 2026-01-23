@@ -14,62 +14,50 @@ interface MessageBubbleProps {
 export const MessageBubble = ({ role, content, model, timestamp }: MessageBubbleProps) => {
   const isUser = role === 'user'
 
-  // Farklı modeller için gri tonları tanımlayalım
-  const getModelGrayScale = (modelType?: ModelType) => {
-    switch (modelType) {
-      case 'gpt': return 'bg-slate-100 border-slate-200';
-      case 'claude': return 'bg-slate-50 border-slate-200';
-      case 'gemini': return 'bg-gray-100 border-gray-200';
-      case 'grok': return 'bg-zinc-100 border-zinc-200';
-      case 'deepseek': return 'bg-neutral-100 border-neutral-200';
-      default: return 'bg-white border-slate-200';
-    }
-  }
-
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       className={cn(
-        "flex w-full mb-8",
-        isUser ? "justify-end" : "justify-start"
+        "w-full py-8 border-b border-slate-100/50",
+        isUser ? "bg-transparent" : "bg-slate-50/30"
       )}
     >
-      <div className={cn(
-        "flex flex-col",
-        isUser ? "max-w-[75%] items-end" : "max-w-[85%] items-start"
-      )}>
-        {!isUser && model && (
-          <div className="mb-2 ml-1">
-            <ModelBadge model={model} />
-          </div>
-        )}
-        
-        <div 
-          className={cn(
-            "relative rounded-2xl px-6 py-4 text-base shadow-sm transition-all",
-            isUser 
-              ? "bg-[#F3F4F6] text-slate-800 border border-[#E5E5E5] rounded-tr-none" 
-              : cn("text-slate-800 border rounded-tl-none", getModelGrayScale(model))
+      <div className="max-w-3xl mx-auto px-4 flex gap-6">
+        {/* Avatar/Icon Area */}
+        <div className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-lg bg-white border border-slate-200 shadow-sm">
+          {isUser ? (
+            <span className="text-[10px] font-bold text-slate-400">YOU</span>
+          ) : (
+            <div className="w-5 h-5 grayscale opacity-70">
+              <img src="/logo.png" alt="AI" className="w-full h-full object-contain" />
+            </div>
           )}
-        >
-          {/* Sol taraftaki renkli border yerine artık sadece ince bir gri çizgi veya hiç yok */}
-          {!isUser && (
-            <div className="absolute left-0 top-0 bottom-0 w-[2px] bg-slate-300 rounded-l-2xl" />
+        </div>
+
+        {/* Content Area */}
+        <div className="flex-1 flex flex-col min-w-0">
+          {!isUser && model && (
+            <div className="mb-2">
+              <ModelBadge model={model} />
+            </div>
           )}
           
           <div className={cn(
-            "leading-relaxed whitespace-pre-wrap text-[15px] text-slate-700",
-            !isUser && "pl-2"
+            "prose prose-slate max-w-none leading-relaxed text-[16px]",
+            isUser ? "text-slate-800 font-medium" : "text-slate-700"
           )}>
-            {content}
+            {content || (
+              <div className="flex gap-1 items-center py-2">
+                <div className="w-1.5 h-1.5 bg-slate-300 rounded-full animate-bounce" />
+                <div className="w-1.5 h-1.5 bg-slate-300 rounded-full animate-bounce [animation-delay:0.2s]" />
+                <div className="w-1.5 h-1.5 bg-slate-300 rounded-full animate-bounce [animation-delay:0.4s]" />
+              </div>
+            )}
           </div>
           
           {timestamp && (
-            <div className={cn(
-              "text-[10px] mt-3 text-right font-medium opacity-40 select-none uppercase tracking-wider",
-              isUser ? "text-slate-600" : "text-slate-500"
-            )}>
+            <div className="mt-4 text-[10px] text-slate-400 font-medium uppercase tracking-widest opacity-50">
               {timestamp}
             </div>
           )}

@@ -7,6 +7,7 @@ import { TypingIndicator } from './TypingIndicator'
 import { InterjectionNote, InterjectionType } from './InterjectionNote'
 import { ModelType } from './ModelAvatar'
 import WaitingRoom from './WaitingRoom'
+import { useSearchParams } from 'next/navigation'
 
 interface Message {
   id: string
@@ -27,11 +28,23 @@ interface ChatContainerProps {
 export const ChatContainer = ({ onFirstMessage, isInitial = false }: ChatContainerProps) => {
   const [messages, setMessages] = useState<Message[]>([])
   const [isTyping, setIsTyping] = useState(false)
-  const [isLoading, setIsLoading] = useState(false)
   const [showWaitingRoom, setShowWaitingRoom] = useState(false)
   const [currentTier, setCurrentTier] = useState<1 | 2 | 3>(1)
   const [lastUserMessage, setLastUserMessage] = useState('')
   const scrollRef = useRef<HTMLDivElement>(null)
+  const searchParams = useSearchParams()
+  const initialMessageProcessed = useRef(false)
+
+  // URL'den gelen mesajı kontrol et
+  useEffect(() => {
+    if (!isInitial && !initialMessageProcessed.current) {
+      const q = searchParams.get('q')
+      if (q) {
+        initialMessageProcessed.current = true
+        handleSend(decodeURIComponent(q))
+      }
+    }
+  }, [searchParams, isInitial])
 
   const scrollToBottom = () => {
     if (scrollRef.current) {
@@ -45,32 +58,24 @@ export const ChatContainer = ({ onFirstMessage, isInitial = false }: ChatContain
 
   const analyzeTier = (message: string): 1 | 2 | 3 => {
     const wordCount = message.split(' ').length
-    const technicalTerms = [
-      'algoritma', 'mimari', 'tasarım', 'etik', 'analiz', 'karmaşık',
-      'algorithm', 'architecture', 'design', 'ethics', 'analysis', 'complex',
-      'yapı', 'strateji', 'sistem', 'model', 'framework', 'pattern'
-    ]
-    const hasTechnicalTerms = technicalTerms.some(term => 
-      message.toLowerCase().includes(term)
-    )
-
-    if (wordCount > 30 || hasTechnicalTerms) {
-      return 3
-    } else if (wordCount > 15) {
-      return 2
-    }
+    if (wordCount > 30) return 3
+    if (wordCount > 15) return 2
     return 1
   }
 
   const handleSend = async (content: string) => {
     if (!content.trim()) return
 
-    // İlk mesaj gönderiliyorsa callback'i çağır
+    if (isInitial) {
+      // Ana sayfadaysak chat sayfasına yönlendir
+      window.location.href = `/chat?q=${encodeURIComponent(content)}`
+      return
+    }
+
     if (messages.length === 0 && onFirstMessage) {
       onFirstMessage()
     }
 
-    // Kullanıcı mesajını ekle
     const newUserMessage: Message = {
       id: Date.now().toString(),
       role: 'user',
@@ -83,10 +88,7 @@ export const ChatContainer = ({ onFirstMessage, isInitial = false }: ChatContain
 
     const tier = analyzeTier(content)
     setCurrentTier(tier)
-    
-    if (tier >= 2) {
-      setShowWaitingRoom(true)
-    }
+    if (tier >= 2) setShowWaitingRoom(true)
 
     await callOpenRouterAPI(content, [...messages, newUserMessage])
   }
@@ -101,7 +103,6 @@ export const ChatContainer = ({ onFirstMessage, isInitial = false }: ChatContain
           content: m.content
         }))
 
-      // Modelleri sırayla çağıralım (Konsey mantığı)
       const models: ModelType[] = ['gpt', 'claude', 'deepseek']
       
       for (const model of models) {
@@ -160,8 +161,7 @@ export const ChatContainer = ({ onFirstMessage, isInitial = false }: ChatContain
             }
           }
         }
-        // Her modelden sonra kısa bir bekleme (opsiyonel)
-        await new Promise(resolve => setTimeout(resolve, 500))
+        await new Promise(resolve => setTimeout(resolve, 300))
       }
 
       setShowWaitingRoom(false)
@@ -170,26 +170,7 @@ export const ChatContainer = ({ onFirstMessage, isInitial = false }: ChatContain
       console.error('API error:', error)
       setIsTyping(false)
       setShowWaitingRoom(false)
-      
-      const aiResponse: Message = {
-        id: Date.now().toString(),
-        role: 'assistant',
-        model: 'gpt',
-        content: "API bağlantısında bir hata oluştu. Lütfen OpenRouter API anahtarınızı kontrol edin.",
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      }
-      setMessages(prev => [...prev, aiResponse])
     }
-  }
-
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-full bg-transparent">
-        <div className="text-center">
-          <div className="w-10 h-10 border-4 border-slate-200 border-t-indigo-500 rounded-full animate-spin mx-auto mb-4"></div>
-        </div>
-      </div>
-    )
   }
 
   if (isInitial) {
@@ -204,37 +185,34 @@ export const ChatContainer = ({ onFirstMessage, isInitial = false }: ChatContain
     <div className="flex flex-col h-full bg-[#F9F8F6]">
       <div 
         ref={scrollRef}
-        className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-300"
+        className="flex-1 overflow-y-auto"
       >
-        <div className="max-w-4xl mx-auto px-6 py-8 space-y-4">
+        <div className="w-full">
           {messages.map((msg) => (
-            <React.Fragment key={msg.id}>
-              {msg.is_interjection ? (
-                <InterjectionNote 
-                  content={msg.content} 
-                  modelName={msg.modelName} 
-                  type={msg.interjection_type as any} 
-                />
-              ) : (
-                <MessageBubble
-                  role={msg.role}
-                  content={msg.content}
-                  model={msg.model}
-                  timestamp={msg.timestamp}
-                />
-              )}
-            </React.Fragment>
+            <MessageBubble
+              key={msg.id}
+              role={msg.role}
+              content={msg.content}
+              model={msg.model}
+              timestamp={msg.timestamp}
+            />
           ))}
           
           {showWaitingRoom && (
-            <WaitingRoom 
-              userMessage={lastUserMessage}
-              tier={currentTier}
-              isActive={showWaitingRoom}
-            />
+            <div className="max-w-3xl mx-auto px-4 py-4">
+              <WaitingRoom 
+                userMessage={lastUserMessage}
+                tier={currentTier}
+                isActive={showWaitingRoom}
+              />
+            </div>
           )}
           
-          {isTyping && <TypingIndicator modelName="Konsey Tartışıyor..." />}
+          {isTyping && (
+            <div className="max-w-3xl mx-auto px-4 py-4">
+              <TypingIndicator modelName="Konsey Tartışıyor..." />
+            </div>
+          )}
         </div>
       </div>
       <ChatInput onSend={handleSend} disabled={isTyping} />
