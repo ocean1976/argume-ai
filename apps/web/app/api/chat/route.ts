@@ -13,8 +13,8 @@ export async function POST(req: NextRequest) {
     const body = await req.json()
     const { messages, model } = body
     
-    // API anahtarı (Doğrudan entegre edildi)
-    const API_KEY = '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'
+    // API anahtarı (Yeni anahtar ile güncellendi)
+    const API_KEY = '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'
     
     // Model eşleşmeleri
     const MODEL_MAP: Record<string, string> = {
