@@ -75,6 +75,119 @@ function generateBrief(messages: any[]): string {
   return brief
 }
 
+/**
+ * Model seçimi - Tetikleyicilere göre
+ */
+function selectModel(userMessage: string, model?: string): string {
+  // Eğer model belirtilmişse, onu kullan
+  if (model) {
+    return model
+  }
+
+  // Tetikleyicilere göre model seç
+  const lowerMessage = userMessage.toLowerCase()
+
+  // Kod analizi
+  if (
+    lowerMessage.includes('kod') ||
+    lowerMessage.includes('mimarı') ||
+    lowerMessage.includes('tasarım')
+  ) {
+    return 'anthropic/claude-sonnet-4' // Architect
+  }
+
+  // Haber/Trend
+  if (
+    lowerMessage.includes('haber') ||
+    lowerMessage.includes('güncel') ||
+    lowerMessage.includes('trend')
+  ) {
+    return 'x-ai/grok-4-1-fast' // News Anchor
+  }
+
+  // Etik/Çatışma
+  if (
+    lowerMessage.includes('etik') ||
+    lowerMessage.includes('çatışma') ||
+    lowerMessage.includes('uyuşmazlık')
+  ) {
+    return 'anthropic/claude-opus-4' // High Judge
+  }
+
+  // Denetim/Analiz
+  if (
+    lowerMessage.includes('denetim') ||
+    lowerMessage.includes('kontrol') ||
+    lowerMessage.includes('analiz et')
+  ) {
+    return 'deepseek/deepseek-reasoner' // Prosecutor
+  }
+
+  // Varsayılan
+  return 'deepseek/deepseek-chat' // Fast Worker
+}
+
+/**
+ * Failover Mantığı
+ */
+async function callOpenRouterWithFailover(
+  messages: any[],
+  selectedModel: string,
+  retries: number = 0
+): Promise<Response> {
+  const MAX_RETRIES = 2
+
+  // Failover modelleri
+  const failoverChain: Record<string, string> = {
+    'deepseek/deepseek-chat': 'google/gemini-2.5-flash-preview',
+    'deepseek/deepseek-reasoner': 'anthropic/claude-haiku-4',
+    'anthropic/claude-sonnet-4': 'google/gemini-2.5-flash-preview',
+    'x-ai/grok-4-1-fast': 'google/gemini-2.0-flash-lite',
+    'anthropic/claude-opus-4': 'anthropic/claude-haiku-4',
+  }
+
+  try {
+    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+        'Content-Type': 'application/json',
+        'HTTP-Referer': 'https://argume.ai',
+        'X-Title': 'Argume.ai'
+      },
+      body: JSON.stringify({
+        model: selectedModel,
+        messages,
+        stream: true,
+        temperature: 0.7,
+        max_tokens: 2000
+      })
+    })
+
+    if (!response.ok) {
+      throw new Error(`API error: ${response.status}`)
+    }
+
+    return response
+  } catch (error) {
+    console.error(
+      `[Failover] Model ${selectedModel} failed:`,
+      error
+    )
+
+    // Failover modeline geç
+    if (retries < MAX_RETRIES) {
+      const failoverModel = failoverChain[selectedModel]
+      if (failoverModel) {
+        console.log(`[Failover] Switching to ${failoverModel}`)
+        return callOpenRouterWithFailover(messages, failoverModel, retries + 1)
+      }
+    }
+
+    throw error
+  }
+}
+
 export async function POST(req: NextRequest) {
   try {
     if (!OPENROUTER_API_KEY) {
@@ -96,34 +209,15 @@ export async function POST(req: NextRequest) {
     // Hafıza yönetimi: Son 5 mesaj tam, eskiler özet
     const organizedMessages = organizeMessages(messages)
 
-    // Debug log (production'da kaldırılabilir)
+    // Model seçimi
+    const userMessage = messages[messages.length - 1]?.content || ''
+    const selectedModel = selectModel(userMessage, model)
+
+    console.log(`[API] Selected model: ${selectedModel}`)
     console.log(`[Memory Manager] Total: ${messages.length}, Full Context: ${organizedMessages.length}`)
 
-    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
-        'Content-Type': 'application/json',
-        'HTTP-Referer': 'https://argume.ai',
-        'X-Title': 'Argume.ai'
-      },
-      body: JSON.stringify({
-        model: model || 'deepseek/deepseek-chat',
-        messages: organizedMessages,
-        stream: true,
-        temperature: 0.7,
-        max_tokens: 2000
-      })
-    })
-
-    if (!response.ok) {
-      const error = await response.text()
-      console.error('OpenRouter API error:', error)
-      return NextResponse.json(
-        { error: 'Failed to get response from OpenRouter' },
-        { status: response.status }
-      )
-    }
+    // Failover desteği ile API çağrısı
+    const response = await callOpenRouterWithFailover(organizedMessages, selectedModel)
 
     // Return the streaming response directly
     return new NextResponse(response.body, {
