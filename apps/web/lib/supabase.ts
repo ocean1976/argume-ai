@@ -4,19 +4,16 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
 if (!supabaseUrl || !supabaseAnonKey) {
-  console.warn('Missing Supabase environment variables. Database features will be disabled.')
+  throw new Error('Missing Supabase environment variables')
 }
 
-// Client-side client
-export const supabase = createClient(
-  supabaseUrl || 'https://placeholder.supabase.co',
-  supabaseAnonKey || 'placeholder'
-)
+// Ana client
+export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
-// Server-side client (Seçenek A)
+// Server-side client için
 export const createServerSupabaseClient = () => {
-  if (!supabaseUrl || !supabaseAnonKey) {
-    throw new Error('Missing Supabase environment variables')
-  }
-  return createClient(supabaseUrl, supabaseAnonKey)
+  return createClient(supabaseUrl!, supabaseAnonKey!)
 }
+
+// createClient'ı da export et (supabase-queries.ts için)
+export { createClient } from '@supabase/supabase-js'
