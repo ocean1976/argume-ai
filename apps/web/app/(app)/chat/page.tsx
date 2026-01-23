@@ -73,19 +73,22 @@ export default function ChatPage() {
 
               {/* Central Chat Input Area */}
               <div className="w-full">
-                <div className="text-center mb-12">
-                  <div className="flex items-center justify-center gap-3 mb-4">
-                    <Image 
-                      src="/logo.png" 
-                      alt="Argume" 
-                      width={40} 
-                      height={40}
-                      className="w-10 h-10 object-contain"
-                    />
-                    <h2 className="text-3xl font-serif font-medium text-slate-900">
+                             <div className="flex items-center justify-center gap-3 mb-4">
+                    <div className="w-10 h-10 flex items-center justify-center bg-transparent">
+                      <Image 
+                        src="/logo.png" 
+                        alt="Argume" 
+                        width={40} 
+                        height={40}
+                        className="w-full h-full object-contain"
+                        style={{ filter: 'drop-shadow(none)' }}
+                      />
+                    </div>
+                    <h2 className="text-3xl font-serif font-normal text-slate-900">
                       Ready to Argu Me?
                     </h2>
                   </div>
+
                   <p className="text-lg text-slate-500 font-normal max-w-2xl mx-auto leading-relaxed">
                     Orchestrate GPT, Claude, Gemini, Grok and DeepSeek to find the absolute truth.
                   </p>
