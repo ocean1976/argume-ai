@@ -9,9 +9,9 @@ export const ModelBadge = ({ model }: ModelBadgeProps) => {
   const config = modelConfig[model] || modelConfig.gpt
   
   return (
-    <div className="flex items-center gap-2 mb-2">
-      <ModelAvatar model={model} className="h-5 w-5" />
-      <span className="text-sm font-bold text-slate-700" style={{ color: config.color }}>
+    <div className="flex items-center gap-2 mb-1">
+      <ModelAvatar model={model} className="h-4 w-4 grayscale opacity-70" />
+      <span className="text-[12px] font-semibold text-slate-500 uppercase tracking-wider">
         {config.label}
       </span>
     </div>
