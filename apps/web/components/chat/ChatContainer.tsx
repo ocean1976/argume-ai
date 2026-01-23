@@ -6,6 +6,12 @@ import { ChatInput } from './ChatInput'
 import { TypingIndicator } from './TypingIndicator'
 import { InterjectionNote, InterjectionType } from './InterjectionNote'
 import { ModelType } from './ModelAvatar'
+import { 
+  createConversation, 
+  addMessage, 
+  getConversationMessages,
+  updateConversation 
+} from '@/lib/supabase-queries'
 
 interface Message {
   id: string
@@ -61,19 +67,39 @@ const MOCK_MESSAGES: Message[] = [
   }
 ];
 
-const MODEL_MAPPING: Record<string, ModelType> = {
-  'deepseek/deepseek-chat': 'deepseek',
-  'openai/gpt-4-turbo': 'gpt',
-  'claude-3-opus': 'claude',
-  'google/gemini-2.0-flash-exp': 'gemini',
-  'grok-2': 'grok'
-}
-
 export const ChatContainer = () => {
   const [messages, setMessages] = useState<Message[]>(MOCK_MESSAGES)
   const [isTyping, setIsTyping] = useState(false)
-  const [useRealAPI, setUseRealAPI] = useState(false)
+  const [conversationId, setConversationId] = useState<string | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
   const scrollRef = useRef<HTMLDivElement>(null)
+
+  // Sayfa açıldığında yeni konuşma oluştur ve geçmişi yükle
+  useEffect(() => {
+    initializeConversation()
+  }, [])
+
+  const initializeConversation = async () => {
+    setIsLoading(true)
+    try {
+      // Yeni konuşma oluştur
+      const conversation = await createConversation('Yeni Sohbet')
+      
+      if (conversation) {
+        setConversationId(conversation.id)
+        
+        // Eğer veritabanında mesajlar varsa yükle
+        const savedMessages = await getConversationMessages(conversation.id)
+        if (savedMessages.length > 0) {
+          setMessages(savedMessages)
+        }
+      }
+    } catch (error) {
+      console.error('Konuşma başlatma hatası:', error)
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   const scrollToBottom = () => {
     if (scrollRef.current) {
@@ -86,6 +112,9 @@ export const ChatContainer = () => {
   }, [messages, isTyping])
 
   const handleSend = async (content: string) => {
+    if (!conversationId) return
+
+    // Kullanıcı mesajını ekle
     const newUserMessage: Message = {
       id: Date.now().toString(),
       role: 'user',
@@ -94,28 +123,23 @@ export const ChatContainer = () => {
     }
     
     setMessages(prev => [...prev, newUserMessage])
-    
-    if (!useRealAPI) {
-      // Mock response
-      setIsTyping(true)
-      setTimeout(() => {
-        setIsTyping(false)
-        const aiResponse: Message = {
-          id: (Date.now() + 1).toString(),
-          role: 'assistant',
-          model: 'gpt',
-          content: "Bu harika bir soru! State management seçimi projenizin ihtiyaçlarına göre değişir. Zustand modern bir tercih olsa da, yerleşik çözümleri (Context API) küçümsememek gerekir.",
-          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        }
-        setMessages(prev => [...prev, aiResponse])
-      }, 2000)
-    } else {
-      // Real API call with streaming
-      await callOpenRouterAPI(content)
+
+    // Kullanıcı mesajını Supabase'e kaydet
+    await addMessage(conversationId, 'user', content)
+
+    // Konuşma başlığını ilk mesajdan güncelle (eğer başlık "Yeni Sohbet" ise)
+    if (messages.length === 0) {
+      const title = content.substring(0, 50) + (content.length > 50 ? '...' : '')
+      await updateConversation(conversationId, { title })
     }
+
+    // API çağrısı yap
+    await callOpenRouterAPI(content)
   }
 
   const callOpenRouterAPI = async (userMessage: string) => {
+    if (!conversationId) return
+
     setIsTyping(true)
     try {
       const conversationMessages = messages
@@ -146,6 +170,7 @@ export const ChatContainer = () => {
       let fullContent = ''
       const aiMessageId = (Date.now() + 1).toString()
       let messageAdded = false
+      let dbMessageId: string | null = null
 
       while (true) {
         const { done, value } = await reader.read()
@@ -171,7 +196,19 @@ export const ChatContainer = () => {
                   }
                   setMessages(prev => [...prev, aiResponse])
                   messageAdded = true
+
+                  // İlk chunk'ta Supabase'e kaydet
+                  const dbMessage = await addMessage(
+                    conversationId,
+                    'assistant',
+                    fullContent,
+                    'deepseek'
+                  )
+                  if (dbMessage) {
+                    dbMessageId = dbMessage.id
+                  }
                 } else {
+                  // Sonraki chunk'ları UI'da güncelle
                   setMessages(prev =>
                     prev.map(m =>
                       m.id === aiMessageId ? { ...m, content: fullContent } : m
@@ -184,6 +221,13 @@ export const ChatContainer = () => {
             }
           }
         }
+      }
+
+      // Streaming tamamlandığında final içeriği Supabase'e kaydet
+      if (dbMessageId && fullContent) {
+        await updateConversation(conversationId, {
+          updated_at: new Date().toISOString()
+        })
       }
 
       setIsTyping(false)
@@ -200,7 +244,28 @@ export const ChatContainer = () => {
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       }
       setMessages(prev => [...prev, aiResponse])
+      
+      // Hata mesajını da kaydet
+      if (conversationId) {
+        await addMessage(
+          conversationId,
+          'assistant',
+          aiResponse.content,
+          'gpt'
+        )
+      }
     }
+  }
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-full bg-[#F9F8F6]">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-slate-200 border-t-indigo-500 rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-slate-600">Yükleniyor...</p>
+        </div>
+      </div>
+    )
   }
 
   return (
