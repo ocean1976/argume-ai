@@ -6,9 +6,12 @@ export async function POST(req: NextRequest) {
   try {
     const { messages, model } = await req.json()
     
-    // API anahtarını doğrudan buraya yazıyoruz (Test amaçlı kesin çözüm)
-    const API_KEY = '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'
+    const API_KEY = process.env.OPENROUTER_API_KEY
     
+    if (!API_KEY) {
+      return NextResponse.json({ error: 'API Key is missing' }, { status: 500 })
+    }
+
     const MODEL_MAP: Record<string, string> = {
       'gpt': 'openai/gpt-4o-mini',
       'claude': 'anthropic/claude-3.5-sonnet',
@@ -30,19 +33,26 @@ export async function POST(req: NextRequest) {
       body: JSON.stringify({
         model: selectedModelId,
         messages: messages.map((m: any) => ({ role: m.role, content: m.content })),
-        stream: false,
+        stream: true,
         temperature: 0.7
       })
     })
 
     if (!response.ok) {
-      const errorData = await response.json()
+      const errorData = await response.json().catch(() => ({ error: 'OpenRouter API Error' }))
       return NextResponse.json({ error: 'OpenRouter Error', details: errorData }, { status: response.status })
     }
 
-    const data = await response.json()
-    return NextResponse.json(data)
+    // Stream yanıtını doğrudan frontend'e ilet
+    return new NextResponse(response.body, {
+      headers: {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive'
+      }
+    })
   } catch (error: any) {
+    console.error('Chat API Error:', error)
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }
