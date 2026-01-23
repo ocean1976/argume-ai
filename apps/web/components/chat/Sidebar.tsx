@@ -87,16 +87,16 @@ export const Sidebar = ({ isOpen, onClose, currentConversationId, onSelectConver
       )}>
         {/* Logo Area */}
         <div className="p-6 flex items-center gap-3">
-          <div className="w-8 h-8 flex items-center justify-center flex-shrink-0">
+          <div className="w-10 h-10 flex items-center justify-center flex-shrink-0">
             <Image 
               src="/logo.png" 
-              alt="Argume.ai" 
-              width={32} 
-              height={32}
+              alt="Argume AI" 
+              width={40} 
+              height={40}
               className="w-full h-full object-contain"
             />
           </div>
-          <span className="font-bold text-slate-800 text-lg tracking-tight">Argume.ai</span>
+          <span className="font-bold text-slate-800 text-lg tracking-tight">Argume AI</span>
         </div>
 
         {/* New Chat Button */}
@@ -177,7 +177,7 @@ export const Sidebar = ({ isOpen, onClose, currentConversationId, onSelectConver
           </button>
 
           <button className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-slate-600 hover:bg-[#F0EDE4] rounded-xl transition-colors group">
-            <div className="w-8 h-8 rounded-lg bg-white border border-[#E5E5E5] flex items-center justify-center group-hover:border-slate-400 transition-colors">
+            <div className="w-8 h-8 rounded-lg bg-transparent border border-[#E5E5E5] flex items-center justify-center group-hover:border-slate-400 transition-colors">
               <Settings className="h-4 w-4 text-slate-400 group-hover:text-slate-600" />
             </div>
             <span className="font-medium flex-1 text-left">Ayarlar</span>

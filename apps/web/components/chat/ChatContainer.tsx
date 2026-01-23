@@ -25,51 +25,13 @@ interface Message {
   modelName?: string
 }
 
-const MOCK_MESSAGES: Message[] = [
-  {
-    id: "1",
-    role: "user",
-    content: "React'ta state management için ne önerirsiniz?",
-    timestamp: "09:30 PM"
-  },
-  {
-    id: "2", 
-    role: "assistant",
-    content: "Küçük-orta projeler için Zustand öneriyorum. Minimal API, kolay öğrenme eğrisi ve Redux'a göre çok daha az boilerplate.",
-    model: "deepseek",
-    timestamp: "09:31 PM"
-  },
-  {
-    id: "3",
-    role: "assistant", 
-    content: "DeepSeek'e katılıyorum. Ancak büyük ekiplerde Redux Toolkit da değerlendirilebilir - DevTools ve middleware ekosistemi güçlü.",
-    model: "claude",
-    timestamp: "09:32 PM"
-  },
-  {
-    id: "4",
-    role: "assistant",
-    content: "Dikkat: Takımda Redux deneyimi varsa öğrenme eğrisi avantajı olabilir. Karar vermeden önce takım yetkinliklerini değerlendirin.",
-    model: "claude",
-    modelName: "Claude 3 Opus",
-    is_interjection: true,
-    interjection_type: "RISK_WARNING",
-    timestamp: "09:32 PM"
-  },
-  {
-    id: "5",
-    role: "assistant",
-    content: "Ek bilgi: Zustand, React Server Components ile de tam uyumlu çalışır.",
-    model: "gpt",
-    modelName: "GPT-4o",
-    is_interjection: true,
-    interjection_type: "INFO",
-    timestamp: "09:33 PM"
-  }
-];
+interface ChatContainerProps {
+  onFirstMessage?: () => void
+  isInitial?: boolean
+}
 
-export const ChatContainer = () => {
-  const [messages, setMessages] = useState<Message[]>(MOCK_MESSAGES)
+export const ChatContainer = ({ onFirstMessage, isInitial = false }: ChatContainerProps) => {
+  const [messages, setMessages] = useState<Message[]>([])
   const [isTyping, setIsTyping] = useState(false)
   const [conversationId, setConversationId] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -96,6 +58,7 @@ export const ChatContainer = () => {
         const savedMessages = await getConversationMessages(conversation.id)
         if (savedMessages.length > 0) {
           setMessages(savedMessages)
+          if (onFirstMessage) onFirstMessage()
         }
       }
     } catch (error) {
@@ -116,7 +79,6 @@ export const ChatContainer = () => {
   }, [messages, isTyping, showWaitingRoom])
 
   const analyzeTier = (message: string): 1 | 2 | 3 => {
-    // Basit heuristic: kelime sayısı ve teknik terimler
     const wordCount = message.split(' ').length
     const technicalTerms = [
       'algoritma', 'mimari', 'tasarım', 'etik', 'analiz', 'karmaşık',
@@ -128,15 +90,20 @@ export const ChatContainer = () => {
     )
 
     if (wordCount > 30 || hasTechnicalTerms) {
-      return 3 // Uzman seviye
+      return 3
     } else if (wordCount > 15) {
-      return 2 // Orta seviye
+      return 2
     }
-    return 1 // Basit seviye
+    return 1
   }
 
   const handleSend = async (content: string) => {
     if (!conversationId) return
+
+    // İlk mesaj gönderiliyorsa callback'i çağır
+    if (messages.length === 0 && onFirstMessage) {
+      onFirstMessage()
+    }
 
     // Kullanıcı mesajını ekle
     const newUserMessage: Message = {
@@ -152,22 +119,19 @@ export const ChatContainer = () => {
     // Kullanıcı mesajını Supabase'e kaydet
     await addMessage(conversationId, 'user', content)
 
-    // Konuşma başlığını ilk mesajdan güncelle (eğer başlık "Yeni Sohbet" ise)
+    // Konuşma başlığını ilk mesajdan güncelle
     if (messages.length === 0) {
       const title = content.substring(0, 50) + (content.length > 50 ? '...' : '')
       await updateConversation(conversationId, { title })
     }
 
-    // Sorunun karmaşıklığını analiz et ve Tier belirle
     const tier = analyzeTier(content)
     setCurrentTier(tier)
     
-    // Waiting Room'u göster (Tier 2 ve 3 için)
     if (tier >= 2) {
       setShowWaitingRoom(true)
     }
 
-    // API çağrısı yap
     await callOpenRouterAPI(content)
   }
 
@@ -193,9 +157,7 @@ export const ChatContainer = () => {
         })
       })
 
-      if (!response.ok) {
-        throw new Error('API request failed')
-      }
+      if (!response.ok) throw new Error('API request failed')
 
       const reader = response.body?.getReader()
       if (!reader) throw new Error('No response body')
@@ -231,18 +193,14 @@ export const ChatContainer = () => {
                   setMessages(prev => [...prev, aiResponse])
                   messageAdded = true
 
-                  // İlk chunk'ta Supabase'e kaydet
                   const dbMessage = await addMessage(
                     conversationId,
                     'assistant',
                     fullContent,
                     'deepseek'
                   )
-                  if (dbMessage) {
-                    dbMessageId = dbMessage.id
-                  }
+                  if (dbMessage) dbMessageId = dbMessage.id
                 } else {
-                  // Sonraki chunk'ları UI'da güncelle
                   setMessages(prev =>
                     prev.map(m =>
                       m.id === aiMessageId ? { ...m, content: fullContent } : m
@@ -250,17 +208,13 @@ export const ChatContainer = () => {
                   )
                 }
               }
-            } catch (e) {
-              // Ignore parsing errors
-            }
+            } catch (e) {}
           }
         }
       }
 
-      // Waiting Room'u kapat
       setShowWaitingRoom(false)
 
-      // Streaming tamamlandığında final içeriği Supabase'e kaydet
       if (dbMessageId && fullContent) {
         await updateConversation(conversationId, {
           updated_at: new Date().toISOString()
@@ -273,7 +227,6 @@ export const ChatContainer = () => {
       setIsTyping(false)
       setShowWaitingRoom(false)
       
-      // Fallback to mock response
       const aiResponse: Message = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
@@ -282,33 +235,31 @@ export const ChatContainer = () => {
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       }
       setMessages(prev => [...prev, aiResponse])
-      
-      // Hata mesajını da kaydet
-      if (conversationId) {
-        await addMessage(
-          conversationId,
-          'assistant',
-          aiResponse.content,
-          'gpt'
-        )
-      }
     }
   }
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-full bg-[#F9F8F6]">
+      <div className="flex items-center justify-center h-full bg-transparent">
         <div className="text-center">
-          <div className="w-12 h-12 border-4 border-slate-200 border-t-indigo-500 rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-slate-600">Yükleniyor...</p>
+          <div className="w-10 h-10 border-4 border-slate-200 border-t-indigo-500 rounded-full animate-spin mx-auto mb-4"></div>
         </div>
+      </div>
+    )
+  }
+
+  // Eğer ilk aşamadaysak (isInitial), sadece input'u göster
+  if (isInitial) {
+    return (
+      <div className="w-full">
+        <ChatInput onSend={handleSend} disabled={isTyping} isInitial={true} />
       </div>
     )
   }
 
   return (
     <div className="flex flex-col h-full bg-[#F9F8F6]">
-      {/* Messages Area - Max Width 900px and Centered */}
+      {/* Messages Area */}
       <div 
         ref={scrollRef}
         className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-300"
@@ -333,7 +284,6 @@ export const ChatContainer = () => {
             </React.Fragment>
           ))}
           
-          {/* Waiting Room - Jester Mesajları */}
           {showWaitingRoom && (
             <WaitingRoom 
               userMessage={lastUserMessage}
