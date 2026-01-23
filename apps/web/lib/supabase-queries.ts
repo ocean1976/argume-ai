@@ -1,4 +1,4 @@
-import { createClient } from './supabase'
+import { createServerSupabaseClient as createClient } from './supabase'
 import { ModelType } from '@/components/chat/ModelAvatar'
 
 export interface Message {
