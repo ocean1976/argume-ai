@@ -1,12 +1,12 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, Suspense } from 'react'
 import { ChatContainer } from '@/components/chat/ChatContainer'
 import { Sidebar } from '@/components/chat/Sidebar'
 import { Menu, Share2, Search, MessageSquare, Code, Lightbulb, Globe } from 'lucide-react'
 import Image from 'next/image'
 
-export default function ChatPage() {
+function ChatContent() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const [hasMessages, setHasMessages] = useState(false)
 
@@ -66,64 +66,78 @@ export default function ChatPage() {
 
         {/* Chat Content */}
         <div className="flex-1 overflow-hidden relative flex flex-col justify-center">
-          <div className="flex-1 overflow-y-auto flex flex-col justify-center">
-            <div className="max-w-4xl mx-auto px-4 py-8 md:py-12">
-              {!hasMessages ? (
-                /* Central Chat Input Area */
-                <div className="w-full">
-                  <div className="text-center mb-12">
-                    <div className="flex items-center justify-center gap-3 mb-4">
-                      <div className="w-10 h-10 flex items-center justify-center bg-transparent overflow-hidden">
-                        <Image 
-                          src="/logo.png" 
-                          alt="Argume" 
-                          width={40} 
-                          height={40}
-                          className="w-full h-full object-contain mix-blend-multiply"
-                        />
+          <div className="flex-1 overflow-y-auto flex flex-col">
+            <div className={!hasMessages ? "flex-1 flex flex-col justify-center" : ""}>
+              <div className="max-w-4xl mx-auto w-full">
+                {!hasMessages ? (
+                  /* Central Chat Input Area */
+                  <div className="w-full px-4 py-8">
+                    <div className="text-center mb-12">
+                      <div className="flex items-center justify-center gap-3 mb-4">
+                        <div className="w-10 h-10 flex items-center justify-center bg-transparent overflow-hidden">
+                          <Image 
+                            src="/logo.png" 
+                            alt="Argume" 
+                            width={40} 
+                            height={40}
+                            className="w-full h-full object-contain mix-blend-multiply"
+                          />
+                        </div>
+                        <h2 className="text-3xl font-serif font-light text-slate-900 tracking-tight">
+                          Ready to Argu Me?
+                        </h2>
                       </div>
-                      <h2 className="text-3xl font-serif font-light text-slate-900 tracking-tight">
-                        Ready to Argu Me?
-                      </h2>
+                      <p className="text-lg text-slate-500 font-normal max-w-2xl mx-auto leading-relaxed">
+                        Orchestrate GPT, Claude, Gemini, Grok and DeepSeek to find the absolute truth.
+                      </p>
                     </div>
-                    <p className="text-lg text-slate-500 font-normal max-w-2xl mx-auto leading-relaxed">
-                      Orchestrate GPT, Claude, Gemini, Grok and DeepSeek to find the absolute truth.
-                    </p>
-                  </div>
 
-                  <div className="max-w-2xl mx-auto">
-                    <ChatContainer 
-                      isInitial={true} 
-                      onFirstMessage={() => setHasMessages(true)} 
-                    />
-                    
-                    {/* Quick Actions */}
-                    <div className="flex flex-wrap justify-center gap-2 mt-8">
-                      {[
-                        { icon: Code, label: 'Kod Yaz' },
-                        { icon: Lightbulb, label: 'Fikir Üret' },
-                        { icon: Search, label: 'Analiz Et' },
-                        { icon: Globe, label: 'Çeviri Yap' }
-                      ].map((action) => (
-                        <button 
-                          key={action.label}
-                          className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-full text-sm text-slate-600 hover:border-slate-400 hover:bg-slate-50 transition-all shadow-sm"
-                        >
-                          <action.icon className="h-4 w-4" />
-                          {action.label}
-                        </button>
-                      ))}
+                    <div className="max-w-2xl mx-auto">
+                      <ChatContainer 
+                        isInitial={true} 
+                        onFirstMessage={() => setHasMessages(true)} 
+                      />
+                      
+                      {/* Quick Actions */}
+                      <div className="flex flex-wrap justify-center gap-2 mt-8">
+                        {[
+                          { icon: Code, label: 'Kod Yaz' },
+                          { icon: Lightbulb, label: 'Fikir Üret' },
+                          { icon: Search, label: 'Analiz Et' },
+                          { icon: Globe, label: 'Çeviri Yap' }
+                        ].map((action) => (
+                          <button 
+                            key={action.label}
+                            className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-full text-sm text-slate-600 hover:border-slate-400 hover:bg-slate-50 transition-all shadow-sm"
+                          >
+                            <action.icon className="h-4 w-4" />
+                            {action.label}
+                          </button>
+                        ))}
+                      </div>
                     </div>
                   </div>
-                </div>
-              ) : (
-                /* Active Chat Area */
-                <ChatContainer isInitial={false} />
-              )}
+                ) : (
+                  /* Active Chat Area */
+                  <ChatContainer isInitial={false} />
+                )}
+              </div>
             </div>
           </div>
         </div>
       </main>
     </div>
+  )
+}
+
+export default function ChatPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex h-screen items-center justify-center bg-[#F9F8F6]">
+        <div className="w-8 h-8 border-4 border-slate-200 border-t-slate-800 rounded-full animate-spin" />
+      </div>
+    }>
+      <ChatContent />
+    </Suspense>
   )
 }
