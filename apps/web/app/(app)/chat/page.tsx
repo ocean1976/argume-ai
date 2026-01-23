@@ -69,30 +69,16 @@ export default function ChatPage() {
           <div className="flex-1 flex flex-col items-center justify-center px-6 pb-24">
             <div className="w-full max-w-3xl flex flex-col items-center gap-8">
               
-              {/* Logo & Title */}
-              <div className="flex items-center gap-4 mb-4">
-                <div className="w-12 h-12 flex items-center justify-center">
-                  <Image 
-                    src="/logo.png" 
-                    alt="Argume AI" 
-                    width={48} 
-                    height={48}
-                    className="w-full h-full object-contain"
-                  />
-                </div>
-                <h1 className="text-5xl font-serif font-semibold text-slate-900 tracking-tight">
-                  Don't just chat. Argume.
-                </h1>
-              </div>
+              {/* Logo & Title - Removed */}
 
               {/* Central Chat Input Area */}
               <div className="w-full">
                 <div className="text-center mb-12">
-                  <h2 className="text-2xl font-serif font-semibold text-slate-900 mb-3">
-                    Don't just chat. Argume.
+                  <h2 className="text-4xl font-serif font-semibold text-slate-900 mb-4">
+                    Ready to Argu Me?
                   </h2>
                   <p className="text-lg text-slate-500 font-normal max-w-2xl mx-auto leading-relaxed">
-                    Orchestrate GPT-4, Claude and DeepSeek to find the absolute truth.
+                    Orchestrate GPT, Claude, Gemini, Grok and DeepSeek to find the absolute truth.
                   </p>
                 </div>
                 
