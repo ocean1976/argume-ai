@@ -1,4 +1,4 @@
-"use client"
+'use client'
 
 import React, { useState } from 'react'
 import { ChatContainer } from '@/components/chat/ChatContainer'
@@ -11,13 +11,13 @@ export default function ChatPage() {
   const [hasMessages, setHasMessages] = useState(false)
 
   const handleShare = () => {
-    if (navigator.share) {
+    if (typeof window !== 'undefined' && navigator.share) {
       navigator.share({
         title: 'Argume AI Tartışması',
         text: 'Bu AI tartışmasına bir göz at!',
         url: window.location.href,
       }).catch(console.error);
-    } else {
+    } else if (typeof window !== 'undefined') {
       navigator.clipboard.writeText(window.location.href);
       alert('Bağlantı kopyalandı!');
     }
@@ -47,87 +47,82 @@ export default function ChatPage() {
                   alt="Argu Me" 
                   width={28} 
                   height={28}
-                  className="w-full h-full object-contain"
+                  className="w-full h-full object-contain mix-blend-multiply"
                 />
               </div>
             </div>
             
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
               <button 
                 onClick={handleShare}
-                className="flex items-center gap-2 px-4 py-2 text-sm font-bold text-slate-700 bg-white border border-[#E5E5E5] hover:border-[#D97706] hover:text-[#D97706] rounded-xl transition-all shadow-sm active:scale-95"
+                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-xl transition-all border border-slate-200"
               >
                 <Share2 className="h-4 w-4" />
-                <span className="hidden sm:inline">Paylaş</span>
+                <span>Paylaş</span>
               </button>
             </div>
           </header>
         )}
 
-        {/* Empty State - Claude Style Merkezi Giriş */}
-        {!hasMessages && (
-          <div className="flex-1 flex flex-col items-center justify-center px-6 pb-24">
-            <div className="w-full max-w-3xl flex flex-col items-center gap-8">
-              
-              {/* Logo & Title - Removed */}
-
-              {/* Central Chat Input Area */}
-              <div className="w-full">
-                             <div className="flex items-center justify-center gap-3 mb-4">
-                    <div className="w-10 h-10 flex items-center justify-center bg-transparent overflow-hidden">
-                      <Image 
-                        src="/logo.png" 
-                        alt="Argume" 
-                        width={40} 
-                        height={40}
-                        className="w-full h-full object-contain mix-blend-multiply"
-                      />
+        {/* Chat Content */}
+        <div className="flex-1 overflow-hidden relative flex flex-col">
+          <div className="flex-1 overflow-y-auto">
+            <div className="max-w-4xl mx-auto px-4 py-8 md:py-12">
+              {!hasMessages ? (
+                /* Central Chat Input Area */
+                <div className="w-full">
+                  <div className="text-center mb-12">
+                    <div className="flex items-center justify-center gap-3 mb-4">
+                      <div className="w-10 h-10 flex items-center justify-center bg-transparent overflow-hidden">
+                        <Image 
+                          src="/logo.png" 
+                          alt="Argume" 
+                          width={40} 
+                          height={40}
+                          className="w-full h-full object-contain mix-blend-multiply"
+                        />
+                      </div>
+                      <h2 className="text-3xl font-serif font-light text-slate-900 tracking-tight">
+                        Ready to Argu Me?
+                      </h2>
                     </div>
-                    <h2 className="text-3xl font-serif font-light text-slate-900 tracking-tight">
-                      Ready to Argu Me?
-                    </h2>
+                    <p className="text-lg text-slate-500 font-normal max-w-2xl mx-auto leading-relaxed">
+                      Orchestrate GPT, Claude, Gemini, Grok and DeepSeek to find the absolute truth.
+                    </p>
                   </div>
 
-                  <p className="text-lg text-slate-500 font-normal max-w-2xl mx-auto leading-relaxed">
-                    Orchestrate GPT, Claude, Gemini, Grok and DeepSeek to find the absolute truth.
-                  </p>
+                  <div className="max-w-2xl mx-auto">
+                    <ChatContainer 
+                      isInitial={true} 
+                      onFirstMessage={() => setHasMessages(true)} 
+                    />
+                    
+                    {/* Quick Actions */}
+                    <div className="flex flex-wrap justify-center gap-2 mt-8">
+                      {[
+                        { icon: Code, label: 'Kod Yaz' },
+                        { icon: Lightbulb, label: 'Fikir Üret' },
+                        { icon: Search, label: 'Analiz Et' },
+                        { icon: Globe, label: 'Çeviri Yap' }
+                      ].map((action) => (
+                        <button 
+                          key={action.label}
+                          className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-full text-sm text-slate-600 hover:border-slate-400 hover:bg-slate-50 transition-all shadow-sm"
+                        >
+                          <action.icon className="h-4 w-4" />
+                          {action.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                 </div>
-                
-                <div className="bg-white rounded-2xl border border-[#E5E5E5] shadow-sm p-2 focus-within:ring-2 focus-within:ring-slate-200 transition-all">
-                  <ChatContainer onFirstMessage={() => setHasMessages(true)} isInitial={true} />
-                </div>
-
-                {/* Quick Action Buttons */}
-                <div className="flex flex-wrap justify-center gap-3 mt-6">
-                  <button className="flex items-center gap-2 px-4 py-2 bg-white border border-[#E5E5E5] rounded-full text-sm text-slate-600 hover:bg-slate-50 transition-colors">
-                    <Code className="w-4 h-4" />
-                    <span>Kod Yaz</span>
-                  </button>
-                  <button className="flex items-center gap-2 px-4 py-2 bg-white border border-[#E5E5E5] rounded-full text-sm text-slate-600 hover:bg-slate-50 transition-colors">
-                    <Lightbulb className="w-4 h-4" />
-                    <span>Fikir Üret</span>
-                  </button>
-                  <button className="flex items-center gap-2 px-4 py-2 bg-white border border-[#E5E5E5] rounded-full text-sm text-slate-600 hover:bg-slate-50 transition-colors">
-                    <Search className="w-4 h-4" />
-                    <span>Analiz Et</span>
-                  </button>
-                  <button className="flex items-center gap-2 px-4 py-2 bg-white border border-[#E5E5E5] rounded-full text-sm text-slate-600 hover:bg-slate-50 transition-colors">
-                    <Globe className="w-4 h-4" />
-                    <span>Çeviri Yap</span>
-                  </button>
-                </div>
-              </div>
+              ) : (
+                /* Active Chat Area */
+                <ChatContainer isInitial={false} />
+              )}
             </div>
           </div>
-        )}
-
-        {/* Active Chat State */}
-        {hasMessages && (
-          <div className="flex-1 overflow-hidden">
-            <ChatContainer onFirstMessage={() => setHasMessages(true)} isInitial={false} />
-          </div>
-        )}
-
+        </div>
       </main>
     </div>
   )
