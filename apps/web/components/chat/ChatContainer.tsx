@@ -20,19 +20,22 @@ export const ChatContainer = ({ onFirstMessage, isInitial = false }: { onFirstMe
   const [messages, setMessages] = useState<Message[]>([])
   const [isTyping, setIsTyping] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const scrollRef = useRef<HTMLDivElement>(null)
+  const messagesEndRef = useRef<HTMLDivElement>(null)
 
+  // Otomatik scroll fonksiyonu
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }
+
+  // Mesajlar veya yazma durumu değiştiğinde scroll yap
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight
-    }
+    scrollToBottom()
   }, [messages, isTyping])
 
   const handleSend = async (content: string) => {
     if (!content.trim() || isTyping) return
     setError(null)
 
-    // İlk mesaj gönderildiğinde üst bileşene haber ver (UI değişimi için)
     if (messages.length === 0 && onFirstMessage) onFirstMessage()
 
     const userMsg: Message = {
@@ -64,49 +67,20 @@ export const ChatContainer = ({ onFirstMessage, isInitial = false }: { onFirstMe
           throw new Error(errData.details?.error?.message || errData.error || 'Bağlantı hatası')
         }
 
-        const reader = response.body?.getReader()
-        if (!reader) continue
+        // stream: false olduğu için doğrudan JSON yanıtı alıyoruz
+        const data = await response.json()
+        const aiContent = data.choices?.[0]?.message?.content || ''
 
-        const decoder = new TextDecoder()
-        let fullContent = ''
-        const aiMessageId = Math.random().toString(36).substring(7)
-        
-        // İlk boş mesajı ekle
-        setMessages(prev => [...prev, {
-          id: aiMessageId,
-          role: 'assistant',
-          model: model,
-          content: '',
-          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-        }])
-
-        while (true) {
-          const { done, value } = await reader.read()
-          if (done) break
-
-          const chunk = decoder.decode(value)
-          const lines = chunk.split('\n')
-
-          for (const line of lines) {
-            if (line.startsWith('data: ')) {
-              const dataStr = line.slice(6).trim()
-              if (dataStr === '[DONE]') continue
-              
-              try {
-                const data = JSON.parse(dataStr)
-                const content = data.choices?.[0]?.delta?.content || ''
-                if (content) {
-                  fullContent += content
-                  setMessages(prev =>
-                    prev.map(m => m.id === aiMessageId ? { ...m, content: fullContent } : m)
-                  )
-                }
-              } catch (e) {
-                // JSON parse hatası (yarım chunk gelmiş olabilir), sessizce devam et
-              }
-            }
-          }
+        if (aiContent) {
+          setMessages(prev => [...prev, {
+            id: Math.random().toString(36).substring(7),
+            role: 'assistant',
+            model: model,
+            content: aiContent,
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+          }])
         }
+        
         // Modeller arası kısa bekleme
         await new Promise(r => setTimeout(r, 500))
       }
@@ -121,23 +95,40 @@ export const ChatContainer = ({ onFirstMessage, isInitial = false }: { onFirstMe
   if (isInitial) return <ChatInput onSend={handleSend} isInitial={true} />
 
   return (
-    <div className="flex flex-col h-full bg-[#F9F8F6]">
-      <div ref={scrollRef} className="flex-1 overflow-y-auto">
-        <div className="w-full">
+    <div className="flex flex-col h-screen bg-[#F9F8F6]">
+      {/* Mesaj Alanı */}
+      <div className="flex-1 overflow-y-auto pt-4">
+        <div className="w-full max-w-4xl mx-auto">
           {messages.map((msg) => (
-            <MessageBubble key={msg.id} role={msg.role} content={msg.content} model={msg.model} timestamp={msg.timestamp} />
+            <MessageBubble 
+              key={msg.id} 
+              role={msg.role} 
+              content={msg.content} 
+              model={msg.model} 
+              timestamp={msg.timestamp} 
+            />
           ))}
-          {isTyping && <div className="max-w-3xl mx-auto px-4 py-4"><TypingIndicator modelName="Konsey Tartışıyor..." /></div>}
+          {isTyping && (
+            <div className="px-4 py-4">
+              <TypingIndicator modelName="Konsey Tartışıyor..." />
+            </div>
+          )}
           {error && (
-            <div className="max-w-3xl mx-auto px-4 py-4">
+            <div className="px-4 py-4">
               <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-xl text-sm">
                 <strong>Hata:</strong> {error}
               </div>
             </div>
           )}
+          {/* Scroll Hedefi */}
+          <div ref={messagesEndRef} className="h-20" />
         </div>
       </div>
-      <ChatInput onSend={handleSend} disabled={isTyping} />
+      
+      {/* Sabit Input Alanı */}
+      <div className="border-t border-slate-100 bg-white/80 backdrop-blur-md">
+        <ChatInput onSend={handleSend} disabled={isTyping} />
+      </div>
     </div>
   )
 }

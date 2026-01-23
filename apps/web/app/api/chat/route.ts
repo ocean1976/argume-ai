@@ -5,7 +5,7 @@ export const runtime = 'edge'
 
 /**
  * DİKKAT: Bu API rotası test amaçlı tüm kimlik doğrulama (auth) kontrollerinden arındırılmıştır.
- * Giriş yapmadan doğrudan OpenRouter üzerinden AI yanıtları alınabilir.
+ * Türkçe karakter sorununu çözmek için stream geçici olarak false yapılmıştır.
  */
 export async function POST(req: NextRequest) {
   try {
@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
 
     const selectedModelId = MODEL_MAP[model] || MODEL_MAP['gpt']
 
-    // OpenRouter'a doğrudan istek yap (Hiçbir auth kontrolü yok)
+    // OpenRouter'a doğrudan istek yap
     const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -43,7 +43,7 @@ export async function POST(req: NextRequest) {
       body: JSON.stringify({
         model: selectedModelId,
         messages: messages.map((m: any) => ({ role: m.role, content: m.content })),
-        stream: true,
+        stream: false, // Türkçe karakter sorunu için geçici olarak false yapıldı
         temperature: 0.7
       })
     })
@@ -57,14 +57,11 @@ export async function POST(req: NextRequest) {
       })
     }
 
-    // Yanıtı stream olarak döndür
-    return new NextResponse(response.body, {
-      headers: {
-        'Content-Type': 'text/event-stream',
-        'Cache-Control': 'no-cache',
-        'Connection': 'keep-alive'
-      }
-    })
+    const data = await response.json()
+    
+    // Stream kapalı olduğu için doğrudan JSON yanıtı döndür
+    return NextResponse.json(data)
+    
   } catch (error: any) {
     // Genel hata yakalama
     return new NextResponse(JSON.stringify({ error: error.message }), {
