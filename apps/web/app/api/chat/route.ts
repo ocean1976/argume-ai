@@ -1,16 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server'
 
 export const dynamic = 'force-dynamic'
-export const runtime = 'edge' // Vercel Edge Runtime kullanarak daha hızlı ve engelsiz yanıt alalım
+export const runtime = 'edge'
 
+/**
+ * DİKKAT: Bu API rotası test amaçlı tüm kimlik doğrulama (auth) kontrollerinden arındırılmıştır.
+ * Giriş yapmadan doğrudan OpenRouter üzerinden AI yanıtları alınabilir.
+ */
 export async function POST(req: NextRequest) {
   try {
+    // Gelen isteği oku
     const body = await req.json()
     const { messages, model } = body
     
-    // API anahtarını doğrudan buraya yazıyoruz (Vercel env bazen geç yansıyabiliyor)
+    // API anahtarı (Doğrudan entegre edildi)
     const API_KEY = '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'
     
+    // Model eşleşmeleri
     const MODEL_MAP: Record<string, string> = {
       'gpt': 'openai/gpt-4o-mini',
       'claude': 'anthropic/claude-3.5-sonnet',
@@ -21,6 +27,7 @@ export async function POST(req: NextRequest) {
 
     const selectedModelId = MODEL_MAP[model] || MODEL_MAP['gpt']
 
+    // OpenRouter'a doğrudan istek yap (Hiçbir auth kontrolü yok)
     const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -37,6 +44,7 @@ export async function POST(req: NextRequest) {
       })
     })
 
+    // Hata kontrolü
     if (!response.ok) {
       const errorText = await response.text()
       return new NextResponse(JSON.stringify({ error: 'OpenRouter Error', details: errorText }), {
@@ -45,6 +53,7 @@ export async function POST(req: NextRequest) {
       })
     }
 
+    // Yanıtı stream olarak döndür
     return new NextResponse(response.body, {
       headers: {
         'Content-Type': 'text/event-stream',
@@ -53,6 +62,7 @@ export async function POST(req: NextRequest) {
       }
     })
   } catch (error: any) {
+    // Genel hata yakalama
     return new NextResponse(JSON.stringify({ error: error.message }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' }
