@@ -7,8 +7,16 @@ if (!supabaseUrl || !supabaseAnonKey) {
   console.warn('Missing Supabase environment variables. Database features will be disabled.')
 }
 
-// Singleton pattern for the supabase client
+// Client-side client
 export const supabase = createClient(
   supabaseUrl || 'https://placeholder.supabase.co',
   supabaseAnonKey || 'placeholder'
 )
+
+// Server-side client (Seçenek A)
+export const createServerSupabaseClient = () => {
+  if (!supabaseUrl || !supabaseAnonKey) {
+    throw new Error('Missing Supabase environment variables')
+  }
+  return createClient(supabaseUrl, supabaseAnonKey)
+}
