@@ -6,11 +6,16 @@ export async function POST(req: NextRequest) {
   try {
     const { messages, model } = await req.json()
     
+    // API anahtarını env'den alıyoruz
     const API_KEY = process.env.OPENROUTER_API_KEY
     
     if (!API_KEY) {
-      return NextResponse.json({ error: 'API Key is missing' }, { status: 500 })
+      return NextResponse.json({ error: 'API Key is missing in environment' }, { status: 500 })
     }
+
+    // NOT: Burada normalde kullanıcı kontrolü (auth) olurdu. 
+    // Test aşamasında olduğumuz için bu kontrolü atlıyoruz veya anonim kabul ediyoruz.
+    // const userId = 'anonymous' 
 
     const MODEL_MAP: Record<string, string> = {
       'gpt': 'openai/gpt-4o-mini',
@@ -43,7 +48,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'OpenRouter Error', details: errorData }, { status: response.status })
     }
 
-    // Stream yanıtını doğrudan frontend'e ilet
     return new NextResponse(response.body, {
       headers: {
         'Content-Type': 'text/event-stream',
