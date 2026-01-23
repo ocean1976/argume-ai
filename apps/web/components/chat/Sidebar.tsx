@@ -82,7 +82,7 @@ export const Sidebar = ({ isOpen, onClose, currentConversationId, onSelectConver
       )}
 
       <aside className={cn(
-        "fixed md:relative inset-y-0 left-0 w-[260px] bg-[#F9F8F6] border-r border-[#E5E5E5] z-50 transition-transform duration-300 ease-in-out flex flex-col",
+        "fixed md:relative inset-y-0 left-0 w-[260px] bg-[#F3F1ED] border-r border-[#E0DDD8] z-50 transition-transform duration-300 ease-in-out flex flex-col",
         isOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
       )}>
         {/* Logo Area */}
@@ -96,7 +96,7 @@ export const Sidebar = ({ isOpen, onClose, currentConversationId, onSelectConver
               className="w-full h-full object-contain"
             />
           </div>
-          <span className="font-bold text-slate-800 text-lg tracking-tight">Argu Me</span>
+          <span className="font-bold text-slate-800 text-lg tracking-tight">Argume AI</span>
         </div>
 
         {/* New Chat Button */}

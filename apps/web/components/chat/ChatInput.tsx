@@ -44,19 +44,19 @@ export const ChatInput = ({ onSend, disabled, isInitial = false }: ChatInputProp
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Ready to Argue Me?"
+            placeholder="Enter a topic to start the council debate..."
             disabled={disabled}
             className={cn(
-              "flex-1 resize-none bg-transparent px-4 py-3 text-lg text-slate-800 placeholder-slate-400 focus:outline-none disabled:opacity-50",
+              "flex-1 resize-none bg-transparent px-4 py-3 text-base text-slate-800 placeholder-slate-400 focus:outline-none disabled:opacity-50",
               "max-h-[200px] overflow-y-auto"
             )}
           />
           <button
             onClick={handleSend}
             disabled={!input.trim() || disabled}
-            className="h-12 w-12 rounded-xl bg-slate-900 hover:bg-slate-800 text-white flex items-center justify-center shrink-0 transition-colors disabled:opacity-50 shadow-sm"
+            className="h-11 w-11 rounded-lg bg-slate-800 hover:bg-slate-700 text-white flex items-center justify-center shrink-0 transition-colors disabled:opacity-50"
           >
-            <ArrowUp className="h-6 w-6" />
+            <ArrowUp className="h-5 w-5" />
           </button>
         </div>
       </div>

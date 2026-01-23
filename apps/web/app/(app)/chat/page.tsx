@@ -80,17 +80,20 @@ export default function ChatPage() {
                     className="w-full h-full object-contain"
                   />
                 </div>
-                <h1 className="text-4xl font-serif font-medium text-slate-800 tracking-tight">
-                  Ready to Argue Me?
+                <h1 className="text-5xl font-serif font-semibold text-slate-900 tracking-tight">
+                  Don't just chat. Argume.
                 </h1>
               </div>
 
               {/* Central Chat Input Area */}
               <div className="w-full">
-                <div className="text-center mb-8">
-                  <h2 className="text-3xl font-serif text-slate-700">
-                    Ready to argue me?
+                <div className="text-center mb-12">
+                  <h2 className="text-2xl font-serif font-semibold text-slate-900 mb-3">
+                    Don't just chat. Argume.
                   </h2>
+                  <p className="text-lg text-slate-500 font-normal max-w-2xl mx-auto leading-relaxed">
+                    Orchestrate GPT-4, Claude and DeepSeek to find the absolute truth.
+                  </p>
                 </div>
                 
                 <div className="bg-white rounded-2xl border border-[#E5E5E5] shadow-sm p-2 focus-within:ring-2 focus-within:ring-slate-200 transition-all">
