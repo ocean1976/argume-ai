@@ -7,6 +7,8 @@ import { TypingIndicator } from './TypingIndicator'
 import { ModelType } from './ModelAvatar'
 import { useSearchParams } from 'next/navigation'
 
+export const dynamic = 'force-dynamic'
+
 interface Message {
   id: string
   role: 'user' | 'assistant'
@@ -18,6 +20,7 @@ interface Message {
 export const ChatContainer = ({ onFirstMessage, isInitial = false }: { onFirstMessage?: () => void, isInitial?: boolean }) => {
   const [messages, setMessages] = useState<Message[]>([])
   const [isTyping, setIsTyping] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
   const searchParams = useSearchParams()
   const initialProcessed = useRef(false)
@@ -39,10 +42,11 @@ export const ChatContainer = ({ onFirstMessage, isInitial = false }: { onFirstMe
   }, [messages, isTyping])
 
   const handleSend = async (content: string) => {
-    if (!content.trim()) return
+    if (!content.trim() || isTyping) return
+    setError(null)
 
     if (isInitial) {
-      window.location.href = `/chat?q=${encodeURIComponent(content)}`
+      window.location.href = `/chat?q=${encodeURIComponent(content.trim())}`
       return
     }
 
@@ -59,7 +63,6 @@ export const ChatContainer = ({ onFirstMessage, isInitial = false }: { onFirstMe
     setIsTyping(true)
 
     try {
-      // Konsey mantığı: GPT ve Claude'dan yanıt alalım
       const models: ModelType[] = ['gpt', 'claude']
       
       for (const model of models) {
@@ -72,6 +75,11 @@ export const ChatContainer = ({ onFirstMessage, isInitial = false }: { onFirstMe
           })
         })
 
+        if (!response.ok) {
+          const errData = await response.json().catch(() => ({ error: 'Bilinmeyen hata' }))
+          throw new Error(errData.details || errData.error || `API Hatası (${response.status})`)
+        }
+
         const data = await response.json()
         
         if (data.choices?.[0]?.message?.content) {
@@ -83,19 +91,11 @@ export const ChatContainer = ({ onFirstMessage, isInitial = false }: { onFirstMe
             timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
           }
           setMessages(prev => [...prev, aiMsg])
-        } else {
-          throw new Error(data.error || 'Yanıt alınamadı')
         }
       }
-    } catch (error: any) {
-      console.error('Chat Error:', error)
-      setMessages(prev => [...prev, {
-        id: 'error',
-        role: 'assistant',
-        model: 'gpt',
-        content: `Hata: ${error.message}. Lütfen API anahtarını ve internet bağlantınızı kontrol edin.`,
-        timestamp: new Date().toLocaleTimeString()
-      }])
+    } catch (err: any) {
+      console.error('Chat Error:', err)
+      setError(err.message)
     } finally {
       setIsTyping(false)
     }
@@ -111,6 +111,13 @@ export const ChatContainer = ({ onFirstMessage, isInitial = false }: { onFirstMe
             <MessageBubble key={msg.id} role={msg.role} content={msg.content} model={msg.model} timestamp={msg.timestamp} />
           ))}
           {isTyping && <div className="max-w-3xl mx-auto px-4 py-4"><TypingIndicator modelName="Konsey Tartışıyor..." /></div>}
+          {error && (
+            <div className="max-w-3xl mx-auto px-4 py-4">
+              <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-xl text-sm">
+                <strong>Hata:</strong> {error}
+              </div>
+            </div>
+          )}
         </div>
       </div>
       <ChatInput onSend={handleSend} disabled={isTyping} />
