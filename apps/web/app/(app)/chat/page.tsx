@@ -41,7 +41,7 @@ export default function ChatPage() {
               >
                 <Menu className="h-5 w-5" />
               </button>
-              <span className="font-semibold text-slate-800">Argume AI</span>
+              <span className="font-semibold text-slate-800">argu me</span>
             </div>
             
             <div className="flex items-center gap-3">
@@ -73,7 +73,7 @@ export default function ChatPage() {
                   />
                 </div>
                 <h1 className="text-4xl font-serif font-medium text-slate-800 tracking-tight">
-                  Argume AI
+                  argu me
                 </h1>
               </div>
 
