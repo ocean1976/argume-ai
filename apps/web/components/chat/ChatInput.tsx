@@ -44,7 +44,7 @@ export const ChatInput = ({ onSend, disabled, isInitial = false }: ChatInputProp
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Size nasıl yardımcı olabilirim?"
+            placeholder="Ready to argue me?"
             disabled={disabled}
             className={cn(
               "flex-1 resize-none bg-transparent px-4 py-3 text-lg text-slate-800 placeholder-slate-400 focus:outline-none disabled:opacity-50",

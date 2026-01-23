@@ -81,7 +81,7 @@ export default function ChatPage() {
               <div className="w-full">
                 <div className="text-center mb-8">
                   <h2 className="text-3xl font-serif text-slate-700">
-                    Size nasıl yardımcı olabilirim?
+                    Ready to argue me?
                   </h2>
                 </div>
                 
