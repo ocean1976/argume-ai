@@ -65,8 +65,8 @@ export default function ChatPage() {
         )}
 
         {/* Chat Content */}
-        <div className="flex-1 overflow-hidden relative flex flex-col">
-          <div className="flex-1 overflow-y-auto">
+        <div className="flex-1 overflow-hidden relative flex flex-col justify-center">
+          <div className="flex-1 overflow-y-auto flex flex-col justify-center">
             <div className="max-w-4xl mx-auto px-4 py-8 md:py-12">
               {!hasMessages ? (
                 /* Central Chat Input Area */
