@@ -30,14 +30,25 @@ export const ChatContainer = ({ onFirstMessage, isInitial = false }: { onFirstMe
   const [typingModel, setTypingModel] = useState<string>('Konsey Tartışıyor...')
   const [error, setError] = useState<string | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const scrollContainerRef = useRef<HTMLDivElement>(null)
 
+  // BUG 2 FIX: Otomatik scroll fonksiyonu
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' })
+    }
   }
 
+  // Mesajlar değiştikçe veya yazma durumu değiştikçe scroll yap
   useEffect(() => {
     scrollToBottom()
   }, [messages, isTyping])
+
+  // Sayfa ilk açıldığında en alta odaklan
+  useEffect(() => {
+    const timer = setTimeout(scrollToBottom, 100)
+    return () => clearTimeout(timer)
+  }, [])
 
   const handleSend = async (content: string) => {
     if (!content.trim() || isTyping) return
@@ -122,8 +133,12 @@ export const ChatContainer = ({ onFirstMessage, isInitial = false }: { onFirstMe
   if (isInitial) return <ChatInput onSend={handleSend} isInitial={true} />
 
   return (
-    <div className="flex flex-col h-screen bg-[#F9F8F6]">
-      <div className="flex-1 overflow-y-auto pt-4 pb-32">
+    <div className="flex flex-col h-screen bg-[#F9F8F6] overflow-hidden">
+      {/* Mesaj Alanı */}
+      <div 
+        ref={scrollContainerRef}
+        className="flex-1 overflow-y-auto pt-4 pb-10 chat-messages"
+      >
         <div className="w-full max-w-4xl mx-auto">
           {messages.map((msg) => (
             <div key={msg.id}>
@@ -156,11 +171,12 @@ export const ChatContainer = ({ onFirstMessage, isInitial = false }: { onFirstMe
               </div>
             </div>
           )}
-          <div ref={messagesEndRef} />
+          <div ref={messagesEndRef} className="h-4" />
         </div>
       </div>
       
-      <div className="fixed bottom-0 left-0 right-0 md:left-64 border-t border-slate-100 bg-white/80 backdrop-blur-md z-10">
+      {/* BUG 2 FIX: Sticky bottom input container */}
+      <div className="shrink-0 border-t border-slate-100 bg-white/80 backdrop-blur-md z-10 input-container">
         <div className="max-w-4xl mx-auto">
           <ChatInput onSend={handleSend} disabled={isTyping} />
         </div>
