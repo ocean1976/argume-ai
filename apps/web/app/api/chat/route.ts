@@ -74,6 +74,28 @@ export async function POST(req: NextRequest) {
       
       return NextResponse.json({ tier: 'T2', responses });
     }
+
+    if (tier === 'T2.5') {
+      const thesis = await callModel(
+        MODELS.architect,
+        lastMessage,
+        "You are the Architect. Your role is to present a strong THESIS (🛡️) for the user's question. Provide a clear and well-supported argument."
+      );
+
+      const antithesis = await callModel(
+        MODELS.prosecutor,
+        `User Question: ${lastMessage}\nPrevious Thesis: ${thesis}\n\nTask: Your role is to present a strong ANTITHESIS (⚔️). Challenge the previous thesis, find its weaknesses, and offer a compelling counter-argument or alternative perspective.`,
+        "You are the Prosecutor. Be critical, sharp, and provide a strong counter-view."
+      );
+
+      return NextResponse.json({
+        tier: 'T2.5',
+        responses: [
+          { type: 'thesis', model: 'Claude', content: thesis },
+          { type: 'antithesis', model: 'DeepSeek-R', content: antithesis }
+        ]
+      });
+    }
     
     const response = await callModel(MODELS.fastWorker, lastMessage);
     return NextResponse.json({
