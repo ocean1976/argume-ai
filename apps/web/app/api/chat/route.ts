@@ -5,10 +5,19 @@ import { getTier } from '@/lib/orchestrator'
 export const dynamic = 'force-dynamic'
 export const runtime = 'edge'
 
-async function callModel(modelId: string, prompt: string, systemPrompt?: string): Promise<string> {
+async function callModel(modelId: string, prompt: string, systemPrompt?: string, fallbackModelId?: string): Promise<string> {
   const API_KEY = process.env.OPENROUTER_API_KEY || ''
   
-  const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+  const modelsToTry = [modelId];
+  if (fallbackModelId) {
+    modelsToTry.push(fallbackModelId);
+  }
+
+  let lastError: Error | null = null;
+
+  for (const currentModelId of modelsToTry) {
+    try {
+      const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${API_KEY}`,
@@ -39,6 +48,22 @@ async function callModel(modelId: string, prompt: string, systemPrompt?: string)
   }
 
   return data.choices[0].message.content;
+} catch (error: any) {
+      lastError = error;
+      console.error(`Model ${currentModelId} failed. Trying fallback if available. Error: ${error.message}`);
+      // Eğer bu son denemeyse, hatayı fırlat
+      if (currentModelId === modelsToTry[modelsToTry.length - 1]) {
+        throw lastError;
+      }
+      // Aksi takdirde, bir sonraki modele geç
+    }
+  }
+
+  // Bu kısma normalde ulaşılmamalı, ancak TypeScript'i mutlu etmek için
+  if (lastError) {
+    throw lastError;
+  }
+  throw new Error('Tüm model denemeleri başarısız oldu.');
 }
 
 export async function POST(req: NextRequest) {
@@ -50,7 +75,7 @@ export async function POST(req: NextRequest) {
     const tier = getTier(lastMessage);
     
     if (tier === 'T1') {
-      const response = await callModel(MODELS.fastWorker, lastMessage);
+      const response = await callModel(MODELS.fastWorker, lastMessage, undefined, MODELS.fastWorker); // T1'de fallback'e gerek yok, zaten en hızlı model
       return NextResponse.json({
         tier: 'T1',
         responses: [{ type: 'normal', model: 'DeepSeek', content: response }]
@@ -61,7 +86,8 @@ export async function POST(req: NextRequest) {
       const mainResponse = await callModel(
         MODELS.architect, 
         lastMessage, 
-        "You are the Architect. Provide a detailed and structured answer."
+        "You are the Architect. Provide a detailed and structured answer.",
+        MODELS.fastWorker // Architect için fallback
       );
       
       const interjection = await callModel(
@@ -85,7 +111,8 @@ export async function POST(req: NextRequest) {
       const thesis = await callModel(
         MODELS.architect,
         lastMessage,
-        "You are the Architect. Your role is to present a strong THESIS (🛡️). Provide a clear and well-supported argument."
+        "You are the Architect. Your role is to present a strong THESIS (🛡️). Provide a clear and well-supported argument.",
+        MODELS.fastWorker // Architect için fallback
       );
 
       const antithesis = await callModel(
@@ -107,13 +134,15 @@ export async function POST(req: NextRequest) {
       const thesis = await callModel(
         MODELS.architect,
         lastMessage,
-        "You are the Architect. Present a deep and comprehensive THESIS (🛡️). Consider all major factors."
+        "You are the Architect. Present a deep and comprehensive THESIS (🛡️). Consider all major factors.",
+        MODELS.fastWorker // Architect için fallback
       );
 
       const antithesis = await callModel(
         MODELS.prosecutor,
         `User Question: ${lastMessage}\n\n🛡️ THESIS TO CHALLENGE:\n${thesis}\n\nTask: Present a sharp ANTITHESIS (⚔️). Highlight risks and provide a strong counter-perspective.`,
-        "You are the Prosecutor. Be highly critical and analytical."
+        "You are the Prosecutor. Be highly critical and analytical.",
+        MODELS.fastWorker // Prosecutor için fallback
       );
 
       const synthesis = await callModel(
@@ -132,7 +161,7 @@ export async function POST(req: NextRequest) {
       });
     }
     
-    const response = await callModel(MODELS.fastWorker, lastMessage);
+    const response = await callModel(MODELS.fastWorker, lastMessage, undefined, MODELS.fastWorker);
     return NextResponse.json({
       tier: tier,
       responses: [{ type: 'normal', model: 'DeepSeek', content: response }]
