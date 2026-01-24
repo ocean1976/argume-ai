@@ -5,7 +5,7 @@ import { getTier } from '@/lib/orchestrator'
 export const dynamic = 'force-dynamic'
 export const runtime = 'edge'
 
-async function callModel(modelId: string, prompt: string): Promise<string> {
+async function callModel(modelId: string, prompt: string, systemPrompt?: string): Promise<string> {
   const API_KEY = process.env.OPENROUTER_API_KEY || ''
   
   const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
@@ -18,7 +18,10 @@ async function callModel(modelId: string, prompt: string): Promise<string> {
     },
     body: JSON.stringify({
       model: modelId,
-      messages: [{ role: 'user', content: prompt }],
+      messages: [
+        ...(systemPrompt ? [{ role: 'system', content: systemPrompt }] : []),
+        { role: 'user', content: prompt }
+      ],
       stream: false,
     }),
   });
@@ -42,29 +45,40 @@ export async function POST(req: NextRequest) {
     
     if (tier === 'T1') {
       const response = await callModel(MODELS.fastWorker, lastMessage);
-      
       return NextResponse.json({
         tier: 'T1',
-        responses: [
-          {
-            type: 'normal',
-            model: 'deepseek',
-            content: response
-          }
-        ]
+        responses: [{ type: 'normal', model: 'DeepSeek', content: response }]
       });
+    }
+    
+    if (tier === 'T2') {
+      const mainResponse = await callModel(
+        MODELS.architect, 
+        lastMessage, 
+        "You are the Architect. Provide a detailed and structured answer."
+      );
+      
+      const interjection = await callModel(
+        MODELS.prosecutor,
+        `User Question: ${lastMessage}\nArchitect's Answer: ${mainResponse}\n\nTask: Critically analyze the answer. If there is a mistake, a better approach, or a missing constraint, provide a VERY SHORT note (max 2 sentences). If the answer is perfect, reply ONLY with 'OK'.`,
+        "You are the Prosecutor. Be critical and concise."
+      );
+      
+      const responses = [
+        { type: 'normal', model: 'Claude', content: mainResponse }
+      ];
+      
+      if (interjection.trim().toUpperCase() !== 'OK') {
+        responses.push({ type: 'info', model: 'Prosecutor', content: interjection });
+      }
+      
+      return NextResponse.json({ tier: 'T2', responses });
     }
     
     const response = await callModel(MODELS.fastWorker, lastMessage);
     return NextResponse.json({
       tier: tier,
-      responses: [
-        {
-          type: 'normal',
-          model: 'deepseek',
-          content: response
-        }
-      ]
+      responses: [{ type: 'normal', model: 'DeepSeek', content: response }]
     });
     
   } catch (error: any) {
