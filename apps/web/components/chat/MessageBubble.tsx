@@ -4,15 +4,45 @@ import { ModelType } from './ModelAvatar'
 import { ModelBadge } from './ModelBadge'
 import { motion } from 'framer-motion'
 
+export type MessageType = 
+  | 'normal' 
+  | 'thesis' 
+  | 'antithesis' 
+  | 'synthesis' 
+  | 'warning' 
+  | 'support' 
+  | 'info' 
+  | 'error' 
+  | 'success' 
+  | 'question'
+
 interface MessageBubbleProps {
   role: 'user' | 'assistant'
   content: string
   model?: ModelType
   timestamp?: string
+  type?: MessageType
 }
 
-export const MessageBubble = ({ role, content, model, timestamp }: MessageBubbleProps) => {
+const getMessageStyle = (type: MessageType = 'normal') => {
+  const styles = {
+    normal:     { icon: '🌷', label: null,        color: '#9CA3AF' },
+    thesis:     { icon: '🛡️', label: 'TEZ',       color: '#4B5563' },
+    antithesis: { icon: '⚔️', label: 'ANTİTEZ',   color: '#1F2937' },
+    synthesis:  { icon: '◆',  label: 'SENTEZ',    color: '#111827' },
+    warning:    { icon: '⚠️', label: 'UYARI',     color: '#D97706' },
+    support:    { icon: '💬', label: 'DESTEK',    color: '#3B82F6' },
+    info:       { icon: 'ℹ️', label: 'BİLGİ',     color: '#6B7280' },
+    error:      { icon: '✕',  label: 'HATA',      color: '#EF4444' },
+    success:    { icon: '✓',  label: 'ONAY',      color: '#10B981' },
+    question:   { icon: '?',  label: 'SORU',      color: '#8B5CF6' },
+  };
+  return styles[type] || styles.normal;
+};
+
+export const MessageBubble = ({ role, content, model, timestamp, type = 'normal' }: MessageBubbleProps) => {
   const isUser = role === 'user'
+  const style = getMessageStyle(isUser ? 'normal' : type)
 
   return (
     <motion.div
@@ -37,9 +67,21 @@ export const MessageBubble = ({ role, content, model, timestamp }: MessageBubble
 
         {/* Content Area */}
         <div className="flex-1 flex flex-col min-w-0">
-          {!isUser && model && (
-            <div className="mb-3">
-              <ModelBadge model={model} />
+          {!isUser && (
+            <div className="mb-3 flex items-center gap-3">
+              {/* Symbol & Label System */}
+              <div className="flex items-center gap-2">
+                <span className="text-lg" style={{ color: style.color }}>{style.icon}</span>
+                {style.label && (
+                  <span 
+                    className="text-[10px] font-black tracking-widest px-2 py-0.5 rounded-md border"
+                    style={{ color: style.color, borderColor: `${style.color}40`, backgroundColor: `${style.color}10` }}
+                  >
+                    {style.label}
+                  </span>
+                )}
+              </div>
+              {model && <ModelBadge model={model} />}
             </div>
           )}
           
