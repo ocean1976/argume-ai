@@ -1,70 +1,94 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { MODELS } from '@/lib/models'
-import { getModelName } from '@/lib/modelNames'
+import { MODELS, FALLBACK_MODELS } from '@/lib/models'
 import { getTier } from '@/lib/orchestrator'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'edge'
 
-async function callModel(modelId: string, prompt: string, systemPrompt?: string, fallbackModelId?: string): Promise<string> {
-  const API_KEY = process.env.OPENROUTER_API_KEY || ''
+// Model ID'den görünen isim
+function getModelDisplayName(modelId: string): string {
+  const names: Record<string, string> = {
+    'deepseek/deepseek-chat': 'DeepSeek',
+    'google/gemini-2.0-flash-001': 'Gemini Flash',
+    'anthropic/claude-sonnet-4': 'Claude Sonnet',
+    'deepseek/deepseek-reasoner': 'DeepSeek Reasoner',
+    'x-ai/grok-2-1212': 'Grok',
+    'anthropic/claude-opus-4': 'Claude Opus',
+    'openai/o1': 'GPT o1',
+    'google/gemini-2.5-pro': 'Gemini Pro',
+    'openai/gpt-4o-mini': 'GPT-4o Mini',
+    'openai/gpt-4o': 'GPT-4o',
+  };
+  return names[modelId] || modelId;
+}
+
+async function callModel(
+  modelId: string, 
+  prompt: string, 
+  systemPrompt?: string,
+  allowFallback: boolean = true
+): Promise<{ content: string; usedModel: string }> {
   
-  const modelsToTry = [modelId];
-  if (fallbackModelId) {
-    modelsToTry.push(fallbackModelId);
-  }
-
-  let lastError: Error | null = null;
-
-  for (const currentModelId of modelsToTry) {
-    try {
-      const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${API_KEY}`,
-      'Content-Type': 'application/json',
-      'HTTP-Referer': 'https://clashof.ai',
-      'X-Title': 'Clash of AI'
-    },
-    body: JSON.stringify({
-      model: modelId,
-      messages: [
-        ...(systemPrompt ? [{ role: 'system', content: systemPrompt }] : []),
-        { role: 'user', content: prompt }
-      ],
-      stream: false,
-    }),
-  });
-  
-  const data = await response.json();
-
-  if (!response.ok) {
-    // OpenRouter'dan gelen hata mesajını yakala
-    const errorMessage = data.error ? data.error.message : `HTTP Error ${response.status}`;
-    throw new Error(`OpenRouter Error: ${errorMessage}`);
-  }
-  
-  if (!data.choices || data.choices.length === 0) {
-    throw new Error('OpenRouter Error: Model yanıt vermedi veya boş bir seçim listesi döndürdü.');
-  }
-
-  return data.choices[0].message.content;
-} catch (error: any) {
-      lastError = error;
-      console.error(`Model ${currentModelId} failed. Trying fallback if available. Error: ${error.message}`);
-      // Eğer bu son denemeyse, hatayı fırlat
-      if (currentModelId === modelsToTry[modelsToTry.length - 1]) {
-        throw lastError;
+  try {
+    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
+        'Content-Type': 'application/json',
+        'HTTP-Referer': 'https://clashof.ai',
+        'X-Title': 'Clash of AI',
+      },
+      body: JSON.stringify({
+        model: modelId,
+        messages: [
+          ...(systemPrompt ? [{ role: 'system', content: systemPrompt }] : []),
+          { role: 'user', content: prompt }
+        ],
+        stream: false,
+      }),
+    });
+    
+    const data = await response.json();
+    
+    // Hata varsa fallback dene
+    if (data.error || !data.choices || !data.choices[0]) {
+      console.error(`Model hatası (${modelId}):`, data.error?.message || 'Bilinmeyen hata');
+      
+      // Fallback izni varsa ve yedek model varsa
+      if (allowFallback && FALLBACK_MODELS[modelId]) {
+        const fallbackId = FALLBACK_MODELS[modelId];
+        console.log(`Fallback deneniyor: ${modelId} → ${fallbackId}`);
+        
+        // Yedek modeli çağır (fallback = false, sonsuz döngü olmasın)
+        return await callModel(fallbackId, prompt, systemPrompt, false);
       }
-      // Aksi takdirde, bir sonraki modele geç
+      
+      return { 
+        content: '[Model yanıt veremedi]', 
+        usedModel: modelId 
+      };
     }
+    
+    return { 
+      content: data.choices[0].message.content, 
+      usedModel: modelId 
+    };
+    
+  } catch (error: any) {
+    console.error(`Model çağrı hatası (${modelId}):`, error.message);
+    
+    // Fallback dene
+    if (allowFallback && FALLBACK_MODELS[modelId]) {
+      const fallbackId = FALLBACK_MODELS[modelId];
+      console.log(`Fallback deneniyor (catch): ${modelId} → ${fallbackId}`);
+      return await callModel(fallbackId, prompt, systemPrompt, false);
+    }
+    
+    return { 
+      content: '[Bağlantı hatası]', 
+      usedModel: modelId 
+    };
   }
-
-  // Bu kısma normalde ulaşılmamalı, ancak TypeScript'i mutlu etmek için
-  if (lastError) {
-    throw lastError;
-  }
-  throw new Error('Tüm model denemeleri başarısız oldu.');
 }
 
 export async function POST(req: NextRequest) {
@@ -76,47 +100,45 @@ export async function POST(req: NextRequest) {
     const tier = getTier(lastMessage);
     
     if (tier === 'T1') {
-      const response = await callModel(MODELS.fastWorker, lastMessage, undefined, MODELS.fastWorker); // T1'de fallback'e gerek yok, zaten en hızlı model
+      const { content, usedModel } = await callModel(MODELS.fastWorker, lastMessage);
       return NextResponse.json({
         tier: 'T1',
-        responses: [{ type: 'normal', model: getModelName(MODELS.fastWorker), content: response }]
+        responses: [{ type: 'normal', model: getModelDisplayName(usedModel), content: content }]
       });
     }
     
     if (tier === 'T2') {
-      const mainResponse = await callModel(
+      const { content: mainResponse, usedModel: architectModel } = await callModel(
         MODELS.architect, 
         lastMessage, 
-        "You are the Architect. Provide a detailed and structured answer.",
-        MODELS.fastWorker // Architect için fallback
+        "You are the Architect. Provide a detailed and structured answer."
       );
       
-      const interjection = await callModel(
+      const { content: interjection, usedModel: prosecutorModel } = await callModel(
         MODELS.prosecutor,
         `User Question: ${lastMessage}\nArchitect's Answer: ${mainResponse}\n\nTask: Critically analyze the answer. If there is a mistake, a better approach, or a missing constraint, provide a VERY SHORT note (max 2 sentences). If the answer is perfect, reply ONLY with 'OK'.`,
         "You are the Prosecutor. Be critical and concise."
       );
       
-        responses: [
-          { type: 'normal', model: getModelName(MODELS.architect), content: mainResponse }
-        ]];
+      const responses = [
+        { type: 'normal', model: getModelDisplayName(architectModel), content: mainResponse }
+      ];
       
       if (interjection.trim().toUpperCase() !== 'OK') {
-        responses.push({ type: 'info', model: 'Prosecutor', content: interjection });
+        responses.push({ type: 'info', model: getModelDisplayName(prosecutorModel), content: interjection });
       }
       
       return NextResponse.json({ tier: 'T2', responses });
     }
 
     if (tier === 'T2.5') {
-      const thesis = await callModel(
+      const { content: thesis, usedModel: thesisModel } = await callModel(
         MODELS.architect,
         lastMessage,
-        "You are the Architect. Your role is to present a strong THESIS (🛡️). Provide a clear and well-supported argument.",
-        MODELS.fastWorker // Architect için fallback
+        "You are the Architect. Your role is to present a strong THESIS (🛡️). Provide a clear and well-supported argument."
       );
 
-      const antithesis = await callModel(
+      const { content: antithesis, usedModel: antithesisModel } = await callModel(
         MODELS.prosecutor,
         `User Question: ${lastMessage}\n\n🛡️ THESIS TO CHALLENGE:\n${thesis}\n\nTask: Present a strong ANTITHESIS (⚔️). Do NOT repeat the thesis. Challenge its weaknesses and offer a compelling counter-argument.`,
         "You are the Prosecutor. Be sharp and provide a strong counter-view."
@@ -125,28 +147,26 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({
         tier: 'T2.5',
         responses: [
-          { type: 'thesis', model: getModelName(MODELS.architect), content: thesis },
-          { type: 'antithesis', model: getModelName(MODELS.prosecutor), content: antithesis }
+          { type: 'thesis', model: getModelDisplayName(thesisModel), content: thesis },
+          { type: 'antithesis', model: getModelDisplayName(antithesisModel), content: antithesis }
         ]
       });
     }
 
     if (tier === 'T3') {
-      const thesis = await callModel(
+      const { content: thesis, usedModel: thesisModel } = await callModel(
         MODELS.architect,
         lastMessage,
-        "You are the Architect. Present a deep and comprehensive THESIS (🛡️). Consider all major factors.",
-        MODELS.fastWorker // Architect için fallback
+        "You are the Architect. Present a deep and comprehensive THESIS (🛡️). Consider all major factors."
       );
 
-      const antithesis = await callModel(
+      const { content: antithesis, usedModel: antithesisModel } = await callModel(
         MODELS.prosecutor,
         `User Question: ${lastMessage}\n\n🛡️ THESIS TO CHALLENGE:\n${thesis}\n\nTask: Present a sharp ANTITHESIS (⚔️). Highlight risks and provide a strong counter-perspective.`,
-        "You are the Prosecutor. Be highly critical and analytical.",
-        MODELS.fastWorker // Prosecutor için fallback
+        "You are the Prosecutor. Be highly critical and analytical."
       );
 
-      const synthesis = await callModel(
+      const { content: synthesis, usedModel: synthesisModel } = await callModel(
         MODELS.judge,
         `User Question: ${lastMessage}\n\n🛡️ THESIS:\n${thesis}\n\n⚔️ ANTITHESIS:\n${antithesis}\n\nTask: You are the High Judge. Provide the final SYNTHESIS (◆). Weigh both arguments, resolve the conflict, and provide the most balanced and definitive answer.`,
         "You are the High Judge. Be wise, balanced, and decisive."
@@ -155,17 +175,17 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({
         tier: 'T3',
         responses: [
-          { type: 'thesis', model: getModelName(MODELS.architect), content: thesis },
-          { type: 'antithesis', model: getModelName(MODELS.prosecutor), content: antithesis },
-          { type: 'synthesis', model: getModelName(MODELS.judge), content: synthesis }
+          { type: 'thesis', model: getModelDisplayName(thesisModel), content: thesis },
+          { type: 'antithesis', model: getModelDisplayName(antithesisModel), content: antithesis },
+          { type: 'synthesis', model: getModelDisplayName(synthesisModel), content: synthesis }
         ]
       });
     }
     
-    const response = await callModel(MODELS.fastWorker, lastMessage, undefined, MODELS.fastWorker);
+    const { content, usedModel } = await callModel(MODELS.fastWorker, lastMessage);
     return NextResponse.json({
       tier: tier,
-      responses: [{ type: 'normal', model: getModelName(MODELS.fastWorker), content: response }]
+      responses: [{ type: 'normal', model: getModelDisplayName(usedModel), content: content }]
     });
     
   } catch (error: any) {
