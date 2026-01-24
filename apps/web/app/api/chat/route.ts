@@ -96,6 +96,35 @@ export async function POST(req: NextRequest) {
         ]
       });
     }
+
+    if (tier === 'T3') {
+      const thesis = await callModel(
+        MODELS.architect,
+        lastMessage,
+        "You are the Architect. Your role is to present a deep and comprehensive THESIS (🛡️) for this critical question. Consider all major factors."
+      );
+
+      const antithesis = await callModel(
+        MODELS.prosecutor,
+        `User Question: ${lastMessage}\nPrevious Thesis: ${thesis}\n\nTask: Your role is to present a sharp ANTITHESIS (⚔️). Find the flaws in the thesis, highlight the risks, and provide a strong counter-perspective.`,
+        "You are the Prosecutor. Be highly critical and analytical."
+      );
+
+      const synthesis = await callModel(
+        MODELS.judge,
+        `User Question: ${lastMessage}\n\n🛡️ Thesis: ${thesis}\n\n⚔️ Antithesis: ${antithesis}\n\nTask: You are the High Judge. Your role is to provide the final SYNTHESIS (◆). Weigh both arguments, resolve the conflict, and provide the most balanced, ethical, and definitive answer for the user.`,
+        "You are the High Judge. Be wise, balanced, and decisive."
+      );
+
+      return NextResponse.json({
+        tier: 'T3',
+        responses: [
+          { type: 'thesis', model: 'Claude', content: thesis },
+          { type: 'antithesis', model: 'DeepSeek-R', content: antithesis },
+          { type: 'synthesis', model: 'Claude Opus', content: synthesis }
+        ]
+      });
+    }
     
     const response = await callModel(MODELS.fastWorker, lastMessage);
     return NextResponse.json({
