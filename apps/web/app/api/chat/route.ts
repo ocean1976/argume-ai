@@ -79,13 +79,13 @@ export async function POST(req: NextRequest) {
       const thesis = await callModel(
         MODELS.architect,
         lastMessage,
-        "You are the Architect. Your role is to present a strong THESIS (🛡️) for the user's question. Provide a clear and well-supported argument."
+        "You are the Architect. Your role is to present a strong THESIS (🛡️). Provide a clear and well-supported argument."
       );
 
       const antithesis = await callModel(
         MODELS.prosecutor,
-        `User Question: ${lastMessage}\nPrevious Thesis: ${thesis}\n\nTask: Your role is to present a strong ANTITHESIS (⚔️). Challenge the previous thesis, find its weaknesses, and offer a compelling counter-argument or alternative perspective.`,
-        "You are the Prosecutor. Be critical, sharp, and provide a strong counter-view."
+        `User Question: ${lastMessage}\n\n🛡️ THESIS TO CHALLENGE:\n${thesis}\n\nTask: Present a strong ANTITHESIS (⚔️). Do NOT repeat the thesis. Challenge its weaknesses and offer a compelling counter-argument.`,
+        "You are the Prosecutor. Be sharp and provide a strong counter-view."
       );
 
       return NextResponse.json({
@@ -101,18 +101,18 @@ export async function POST(req: NextRequest) {
       const thesis = await callModel(
         MODELS.architect,
         lastMessage,
-        "You are the Architect. Your role is to present a deep and comprehensive THESIS (🛡️) for this critical question. Consider all major factors."
+        "You are the Architect. Present a deep and comprehensive THESIS (🛡️). Consider all major factors."
       );
 
       const antithesis = await callModel(
         MODELS.prosecutor,
-        `User Question: ${lastMessage}\nPrevious Thesis: ${thesis}\n\nTask: Your role is to present a sharp ANTITHESIS (⚔️). Find the flaws in the thesis, highlight the risks, and provide a strong counter-perspective.`,
+        `User Question: ${lastMessage}\n\n🛡️ THESIS TO CHALLENGE:\n${thesis}\n\nTask: Present a sharp ANTITHESIS (⚔️). Highlight risks and provide a strong counter-perspective.`,
         "You are the Prosecutor. Be highly critical and analytical."
       );
 
       const synthesis = await callModel(
         MODELS.judge,
-        `User Question: ${lastMessage}\n\n🛡️ Thesis: ${thesis}\n\n⚔️ Antithesis: ${antithesis}\n\nTask: You are the High Judge. Your role is to provide the final SYNTHESIS (◆). Weigh both arguments, resolve the conflict, and provide the most balanced, ethical, and definitive answer for the user.`,
+        `User Question: ${lastMessage}\n\n🛡️ THESIS:\n${thesis}\n\n⚔️ ANTITHESIS:\n${antithesis}\n\nTask: You are the High Judge. Provide the final SYNTHESIS (◆). Weigh both arguments, resolve the conflict, and provide the most balanced and definitive answer.`,
         "You are the High Judge. Be wise, balanced, and decisive."
       );
 
