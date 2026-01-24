@@ -3,7 +3,6 @@ import { NextRequest, NextResponse } from 'next/server'
 export const dynamic = 'force-dynamic'
 export const runtime = 'edge'
 
-// MODEL TIER SİSTEMİ
 const MODELS = {
   TIER1: {
     GPT4O_MINI: 'openai/gpt-4o-mini',
@@ -24,7 +23,7 @@ const MODELS = {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
-    const { messages, model } = body
+    const { messages, model, workflowStep } = body
     
     const API_KEY = process.env.OPENROUTER_API_KEY || ''
     
@@ -32,16 +31,35 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'API Key is missing' }, { status: 500 })
     }
 
-    // Model Seçimi (Soru tipine göre orkestrasyon)
-    let selectedModelId = MODELS.TIER1.GPT4O_MINI // Default
+    let selectedModelId = MODELS.TIER1.GPT4O_MINI
+    let systemPrompt = "You are a helpful AI assistant."
 
-    if (model === 'gpt') selectedModelId = MODELS.TIER1.GPT4O_MINI
-    else if (model === 'claude') selectedModelId = MODELS.TIER2.CLAUDE_SONNET
-    else if (model === 'gemini') selectedModelId = MODELS.TIER1.GEMINI_FLASH
-    else if (model === 'grok') selectedModelId = MODELS.TIER2.GROK_FAST
-    else if (model === 'deepseek') selectedModelId = MODELS.TIER1.DEEPSEEK_CHAT
-    else if (model === 'prosecutor') selectedModelId = MODELS.TIER2.DEEPSEEK_REASONER
-    else if (model === 'judge') selectedModelId = MODELS.TIER3.CLAUDE_OPUS
+    if (model === 'gpt') {
+      selectedModelId = MODELS.TIER1.GPT4O_MINI
+      systemPrompt = "You are the Orchestrator. Analyze the user's request and provide a clear direction."
+    } else if (model === 'claude') {
+      selectedModelId = MODELS.TIER2.CLAUDE_SONNET
+      systemPrompt = "You are the Architect. Provide detailed, structured, and well-thought-out answers or code."
+    } else if (model === 'deepseek') {
+      selectedModelId = MODELS.TIER1.DEEPSEEK_CHAT
+      systemPrompt = "You are the Fast Worker. Provide a quick, accurate, and concise initial response."
+    } else if (model === 'prosecutor') {
+      selectedModelId = MODELS.TIER2.DEEPSEEK_REASONER
+      systemPrompt = "You are the Prosecutor. Critically analyze the previous responses, find errors, and suggest better approaches."
+    } else if (model === 'grok') {
+      selectedModelId = MODELS.TIER2.GROK_FAST
+      systemPrompt = "You are the News Anchor. Focus on the most up-to-date information and real-time context."
+    } else if (model === 'judge') {
+      selectedModelId = MODELS.TIER3.CLAUDE_OPUS
+      systemPrompt = "You are the High Judge. Review all previous arguments and provide a final, definitive, and ethical conclusion."
+    } else if (model === 'gemini') {
+      selectedModelId = MODELS.TIER1.GEMINI_FLASH
+      systemPrompt = "You are the Librarian. Focus on document analysis, facts, and comprehensive data retrieval."
+    }
+
+    if (workflowStep === 'thesis') systemPrompt += " Your role in this debate is to present the THESIS (🛡️)."
+    if (workflowStep === 'antithesis') systemPrompt += " Your role in this debate is to present the ANTITHESIS (⚔️). Challenge the previous points."
+    if (workflowStep === 'synthesis') systemPrompt += " Your role in this debate is to provide the SYNTHESIS (◆). Combine all views into a final answer."
 
     const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
@@ -53,7 +71,10 @@ export async function POST(req: NextRequest) {
       },
       body: JSON.stringify({
         model: selectedModelId,
-        messages: messages.map((m: any) => ({ role: m.role, content: m.content })),
+        messages: [
+          { role: 'system', content: systemPrompt },
+          ...messages.map((m: any) => ({ role: m.role, content: m.content }))
+        ],
         stream: false,
         temperature: model === 'prosecutor' ? 0.3 : 0.7
       })

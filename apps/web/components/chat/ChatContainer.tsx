@@ -52,11 +52,30 @@ export const ChatContainer = ({ onFirstMessage, isInitial = false }: { onFirstMe
     setIsTyping(true)
 
     try {
-      const workflow = [
-        { role: 'assistant', model: 'gpt' as ModelType, label: 'TEZ (🛡️)', type: 'thesis' as MessageType },
-        { role: 'assistant', model: 'claude' as ModelType, label: 'ANTİTEZ (⚔️)', type: 'antithesis' as MessageType },
-        { role: 'assistant', model: 'deepseek' as ModelType, label: 'SENTEZ (◆)', type: 'synthesis' as MessageType }
-      ]
+      const isCode = content.toLowerCase().includes('kod') || content.toLowerCase().includes('code') || content.includes('{')
+      const isNews = content.toLowerCase().includes('haber') || content.toLowerCase().includes('news') || content.toLowerCase().includes('son durum')
+      
+      let workflow = []
+      
+      if (isCode) {
+        workflow = [
+          { model: 'deepseek' as ModelType, label: 'Fast Worker (T1)', type: 'thesis' as MessageType },
+          { model: 'claude' as ModelType, label: 'Architect (T2)', type: 'antithesis' as MessageType },
+          { model: 'prosecutor' as ModelType, label: 'Prosecutor (T2)', type: 'synthesis' as MessageType }
+        ]
+      } else if (isNews) {
+        workflow = [
+          { model: 'grok' as ModelType, label: 'News Anchor (T2)', type: 'thesis' as MessageType },
+          { model: 'gemini' as ModelType, label: 'Librarian (T1)', type: 'antithesis' as MessageType },
+          { model: 'judge' as ModelType, label: 'High Judge (T3)', type: 'synthesis' as MessageType }
+        ]
+      } else {
+        workflow = [
+          { model: 'deepseek' as ModelType, label: 'Fast Worker (T1)', type: 'thesis' as MessageType },
+          { model: 'claude' as ModelType, label: 'Architect (T2)', type: 'antithesis' as MessageType },
+          { model: 'judge' as ModelType, label: 'High Judge (T3)', type: 'synthesis' as MessageType }
+        ]
+      }
 
       let currentMessages = [...messages, userMsg]
 
