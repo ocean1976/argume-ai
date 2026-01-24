@@ -19,6 +19,7 @@ interface Message {
 export const ChatContainer = ({ onFirstMessage, isInitial = false }: { onFirstMessage?: () => void, isInitial?: boolean }) => {
   const [messages, setMessages] = useState<Message[]>([])
   const [isTyping, setIsTyping] = useState(false)
+  const [typingModel, setTypingModel] = useState<string>('Konsey Tartışıyor...')
   const [error, setError] = useState<string | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
@@ -30,7 +31,6 @@ export const ChatContainer = ({ onFirstMessage, isInitial = false }: { onFirstMe
     scrollToBottom()
   }, [messages, isTyping])
 
-  // Sayfa ilk açıldığında en alta odaklan
   useEffect(() => {
     const timer = setTimeout(scrollToBottom, 100)
     return () => clearTimeout(timer)
@@ -47,7 +47,6 @@ export const ChatContainer = ({ onFirstMessage, isInitial = false }: { onFirstMe
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     }
     
-    // BUG 1 FIX: Mesajı anında state'e ekle ve kaybolmasını engelle
     setMessages(prev => [...prev, userMsg])
     
     if (messages.length === 0 && onFirstMessage) {
@@ -57,14 +56,16 @@ export const ChatContainer = ({ onFirstMessage, isInitial = false }: { onFirstMe
     setIsTyping(true)
 
     try {
-      const models: ModelType[] = ['gpt', 'claude']
+      // TÜM MODELLER: GPT, Claude, Gemini, Grok, DeepSeek
+      const models: ModelType[] = ['gpt', 'claude', 'gemini', 'grok', 'deepseek']
       
       for (const model of models) {
+        setTypingModel(`${model.toUpperCase()} yanıtlıyor...`)
+        
         const response = await fetch('/api/chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            // Güncel mesaj listesini gönder
             messages: [...messages, userMsg].map(m => ({ role: m.role, content: m.content })),
             model: model
           })
@@ -72,10 +73,11 @@ export const ChatContainer = ({ onFirstMessage, isInitial = false }: { onFirstMe
 
         if (!response.ok) {
           const errData = await response.json().catch(() => ({ error: 'API Hatası' }))
-          throw new Error(errData.details?.error?.message || errData.error || 'Bağlantı hatası')
+          // Bir model hata verirse diğerlerine devam et, ama hatayı logla
+          console.error(`${model} Error:`, errData)
+          continue 
         }
 
-        // BUG 4 FIX: stream: false yanıtını işle
         const data = await response.json()
         const aiContent = data.choices?.[0]?.message?.content || ''
 
@@ -89,13 +91,15 @@ export const ChatContainer = ({ onFirstMessage, isInitial = false }: { onFirstMe
           }])
         }
         
-        await new Promise(r => setTimeout(r, 500))
+        // Modeller arası geçişte doğal bir bekleme
+        await new Promise(r => setTimeout(r, 800))
       }
     } catch (err: any) {
       console.error('Chat Error:', err)
-      setError(err.message)
+      setError('Konsey tartışması sırasında bir hata oluştu.')
     } finally {
       setIsTyping(false)
+      setTypingModel('Konsey Tartışıyor...')
     }
   }
 
@@ -103,7 +107,6 @@ export const ChatContainer = ({ onFirstMessage, isInitial = false }: { onFirstMe
 
   return (
     <div className="flex flex-col h-screen bg-[#F9F8F6]">
-      {/* BUG 2 FIX: Mesaj alanı tam genişlik ve otomatik scroll */}
       <div className="flex-1 overflow-y-auto pt-4 pb-32">
         <div className="w-full max-w-4xl mx-auto">
           {messages.map((msg) => (
@@ -117,7 +120,7 @@ export const ChatContainer = ({ onFirstMessage, isInitial = false }: { onFirstMe
           ))}
           {isTyping && (
             <div className="px-4 py-4">
-              <TypingIndicator modelName="Konsey Tartışıyor..." />
+              <TypingIndicator modelName={typingModel} />
             </div>
           )}
           {error && (
@@ -131,7 +134,6 @@ export const ChatContainer = ({ onFirstMessage, isInitial = false }: { onFirstMe
         </div>
       </div>
       
-      {/* BUG 2 FIX: Sticky bottom input */}
       <div className="fixed bottom-0 left-0 right-0 md:left-64 border-t border-slate-100 bg-white/80 backdrop-blur-md z-10">
         <div className="max-w-4xl mx-auto">
           <ChatInput onSend={handleSend} disabled={isTyping} />
