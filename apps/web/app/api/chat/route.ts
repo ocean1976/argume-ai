@@ -135,30 +135,13 @@ export async function POST(req: NextRequest) {
         content: content
       });
     } else if (tier === 'T2') {
-      // T2: Ana model + Prosecutor dipnot
-      const { content: mainContent, usedModel: mainModel } = await callModel(
-        MODELS.architect,
-        userMessage
-      );
+      // T2: Tek model (hızlı cevap)
+      const { content, usedModel } = await callModel(MODELS.fastWorker, userMessage);
       
       responses.push({
         type: 'normal',
-        model: getModelDisplayName(mainModel),
-        content: mainContent
-      });
-
-      // Prosecutor dipnot
-      const prosecutorPrompt = `Önceki yanıta eleştirel bak ve eksik/hatalı noktaları belirt:\n\n${mainContent}`;
-      const { content: prosecutorContent, usedModel: prosecutorModel } = await callModel(
-        MODELS.prosecutor,
-        prosecutorPrompt,
-        "Sen bir savcı gibi düşünürsün. Argümanlardaki zayıf noktaları, mantık hatalarını ve eksiklikleri tespit edersin. Kısa ve keskin ol."
-      );
-      
-      responses.push({
-        type: 'warning',
-        model: getModelDisplayName(prosecutorModel),
-        content: prosecutorContent
+        model: getModelDisplayName(usedModel),
+        content: content
       });
     } else if (tier === 'T2.5') {
       // T2.5: Tez + Antitez
