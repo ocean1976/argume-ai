@@ -1,19 +1,12 @@
 'use client'
 
 import React, { useState, useRef, useEffect } from 'react'
-import { MessageBubble } from './MessageBubble'
+import { MessageBubble, MessageType } from './MessageBubble'
 import { ChatInput } from './ChatInput'
 import { TypingIndicator } from './TypingIndicator'
 import { ModelType } from './ModelAvatar'
-import { InterjectionNote, InterjectionType } from './InterjectionNote'
 
 export const dynamic = 'force-dynamic'
-
-interface Interjection {
-  type: InterjectionType
-  modelName: string
-  content: string
-}
 
 interface Message {
   id: string
@@ -21,7 +14,7 @@ interface Message {
   content: string
   model?: ModelType
   timestamp: string
-  interjection?: Interjection
+  type?: MessageType
 }
 
 export const ChatContainer = ({ onFirstMessage, isInitial = false }: { onFirstMessage?: () => void, isInitial?: boolean }) => {
@@ -30,25 +23,16 @@ export const ChatContainer = ({ onFirstMessage, isInitial = false }: { onFirstMe
   const [typingModel, setTypingModel] = useState<string>('Konsey Tartışıyor...')
   const [error, setError] = useState<string | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
-  const scrollContainerRef = useRef<HTMLDivElement>(null)
 
-  // BUG 2 FIX: Otomatik scroll fonksiyonu
   const scrollToBottom = () => {
     if (messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({ behavior: 'smooth' })
     }
   }
 
-  // Mesajlar değiştikçe veya yazma durumu değiştikçe scroll yap
   useEffect(() => {
     scrollToBottom()
   }, [messages, isTyping])
-
-  // Sayfa ilk açıldığında en alta odaklan
-  useEffect(() => {
-    const timer = setTimeout(scrollToBottom, 100)
-    return () => clearTimeout(timer)
-  }, [])
 
   const handleSend = async (content: string) => {
     if (!content.trim() || isTyping) return
@@ -58,7 +42,8 @@ export const ChatContainer = ({ onFirstMessage, isInitial = false }: { onFirstMe
       id: Date.now().toString(),
       role: 'user',
       content,
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      type: 'normal'
     }
     
     setMessages(prev => [...prev, userMsg])
@@ -68,22 +53,23 @@ export const ChatContainer = ({ onFirstMessage, isInitial = false }: { onFirstMe
 
     try {
       const workflow = [
-        { role: 'assistant', model: 'deepseek' as ModelType, label: 'Fast Worker' },
-        { role: 'assistant', model: 'claude' as ModelType, label: 'Architect' },
-        { role: 'interjection', model: 'prosecutor' as ModelType, label: 'Prosecutor' }
+        { role: 'assistant', model: 'gpt' as ModelType, label: 'TEZ (🛡️)', type: 'thesis' as MessageType },
+        { role: 'assistant', model: 'claude' as ModelType, label: 'ANTİTEZ (⚔️)', type: 'antithesis' as MessageType },
+        { role: 'assistant', model: 'deepseek' as ModelType, label: 'SENTEZ (◆)', type: 'synthesis' as MessageType }
       ]
 
       let currentMessages = [...messages, userMsg]
 
       for (const step of workflow) {
-        setTypingModel(`${step.label} yanıtlıyor...`)
+        setTypingModel(`${step.label} hazırlanıyor...`)
         
         const response = await fetch('/api/chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             messages: currentMessages.map(m => ({ role: m.role, content: m.content })),
-            model: step.model
+            model: step.model,
+            workflowStep: step.type
           })
         })
 
@@ -93,35 +79,18 @@ export const ChatContainer = ({ onFirstMessage, isInitial = false }: { onFirstMe
         const aiContent = data.choices?.[0]?.message?.content || ''
 
         if (aiContent) {
-          if (step.role === 'interjection') {
-            setMessages(prev => {
-              const newMessages = [...prev]
-              const lastAiIdx = newMessages.map(m => m.role).lastIndexOf('assistant')
-              if (lastAiIdx !== -1) {
-                newMessages[lastAiIdx] = {
-                  ...newMessages[lastAiIdx],
-                  interjection: {
-                    type: 'BETTER_APPROACH',
-                    modelName: 'Prosecutor (DeepSeek-R)',
-                    content: aiContent.substring(0, 200) + (aiContent.length > 200 ? '...' : '')
-                  }
-                }
-              }
-              return newMessages
-            })
-          } else {
-            const newMsg: Message = {
-              id: Math.random().toString(36).substring(7),
-              role: 'assistant',
-              model: step.model,
-              content: aiContent,
-              timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-            }
-            setMessages(prev => [...prev, newMsg])
-            currentMessages.push(newMsg)
+          const newMsg: Message = {
+            id: Math.random().toString(36).substring(7),
+            role: 'assistant',
+            model: step.model,
+            content: aiContent,
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            type: step.type
           }
+          setMessages(prev => [...prev, newMsg])
+          currentMessages.push(newMsg)
         }
-        await new Promise(r => setTimeout(r, 600))
+        await new Promise(r => setTimeout(r, 800))
       }
     } catch (err: any) {
       setError('Konsey tartışması sırasında bir hata oluştu.')
@@ -134,11 +103,7 @@ export const ChatContainer = ({ onFirstMessage, isInitial = false }: { onFirstMe
 
   return (
     <div className="flex flex-col h-screen bg-[#F9F8F6] overflow-hidden">
-      {/* Mesaj Alanı */}
-      <div 
-        ref={scrollContainerRef}
-        className="flex-1 overflow-y-auto pt-4 pb-10 chat-messages"
-      >
+      <div className="flex-1 overflow-y-auto pt-4 pb-10 chat-messages">
         <div className="w-full max-w-4xl mx-auto">
           {messages.map((msg) => (
             <div key={msg.id}>
@@ -146,17 +111,9 @@ export const ChatContainer = ({ onFirstMessage, isInitial = false }: { onFirstMe
                 role={msg.role} 
                 content={msg.content} 
                 model={msg.model} 
-                timestamp={msg.timestamp} 
+                timestamp={msg.timestamp}
+                type={msg.type}
               />
-              {msg.interjection && (
-                <div className="max-w-3xl mx-auto px-6 -mt-4 mb-8">
-                  <InterjectionNote 
-                    type={msg.interjection.type}
-                    modelName={msg.interjection.modelName}
-                    content={msg.interjection.content}
-                  />
-                </div>
-              )}
             </div>
           ))}
           {isTyping && (
@@ -175,7 +132,6 @@ export const ChatContainer = ({ onFirstMessage, isInitial = false }: { onFirstMe
         </div>
       </div>
       
-      {/* BUG 2 FIX: Sticky bottom input container */}
       <div className="shrink-0 border-t border-slate-100 bg-white/80 backdrop-blur-md z-10 input-container">
         <div className="max-w-4xl mx-auto">
           <ChatInput onSend={handleSend} disabled={isTyping} />
