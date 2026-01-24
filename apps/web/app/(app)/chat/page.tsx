@@ -13,7 +13,7 @@ function ChatContent() {
   const handleShare = () => {
     if (typeof window !== 'undefined' && navigator.share) {
       navigator.share({
-        title: 'Argume AI Tartışması',
+        title: 'Clash of AI Debate',
         text: 'Bu AI tartışmasına bir göz at!',
         url: window.location.href,
       }).catch(console.error);
@@ -44,7 +44,7 @@ function ChatContent() {
               <div className="w-7 h-7 flex items-center justify-center">
                 <Image 
                   src="/logo.png" 
-                  alt="Argu Me" 
+                  alt="Clash of AI" 
                   width={28} 
                   height={28}
                   className="w-full h-full object-contain mix-blend-multiply"
@@ -77,14 +77,14 @@ function ChatContent() {
                         <div className="w-10 h-10 flex items-center justify-center bg-transparent overflow-hidden">
                           <Image 
                             src="/logo.png" 
-                            alt="Argume" 
+                            alt="Clash of AI" 
                             width={40} 
                             height={40}
                             className="w-full h-full object-contain mix-blend-multiply"
                           />
                         </div>
                         <h2 className="text-3xl font-serif font-light text-slate-900 tracking-tight">
-                          Ready to Argu Me?
+                          Ready to Clash?
                         </h2>
                       </div>
                       <p className="text-lg text-slate-500 font-normal max-w-2xl mx-auto leading-relaxed">

@@ -90,13 +90,13 @@ export const Sidebar = ({ isOpen, onClose, currentConversationId, onSelectConver
           <div className="w-10 h-10 flex items-center justify-center flex-shrink-0">
             <Image 
               src="/logo.png" 
-              alt="Argume AI" 
+              alt="Clash of AI" 
               width={40} 
               height={40}
               className="w-full h-full object-contain"
             />
           </div>
-          <span className="font-bold text-slate-800 text-lg tracking-tight">Argume AI</span>
+          <span className="font-bold text-slate-800 text-lg tracking-tight">Clash of AI</span>
         </div>
 
         {/* New Chat Button */}

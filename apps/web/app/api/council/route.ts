@@ -176,8 +176,8 @@ async function callOpenRouterAPI(
     headers: {
       'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
       'Content-Type': 'application/json',
-      'HTTP-Referer': 'https://argume.ai',
-      'X-Title': 'Argume.ai'
+      'HTTP-Referer': 'https://clashof.ai',
+      'X-Title': 'Clash of AI'
     },
     body: JSON.stringify({
       model,

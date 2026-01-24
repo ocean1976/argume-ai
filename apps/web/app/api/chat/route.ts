@@ -48,8 +48,8 @@ export async function POST(req: NextRequest) {
       headers: {
         'Authorization': `Bearer ${API_KEY}`,
         'Content-Type': 'application/json',
-        'HTTP-Referer': 'https://argume.ai',
-        'X-Title': 'Argume.ai'
+        'HTTP-Referer': 'https://clashof.ai',
+        'X-Title': 'Clash of AI'
       },
       body: JSON.stringify({
         model: selectedModelId,

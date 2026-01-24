@@ -5,27 +5,28 @@ import "./globals.css";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "argu me | Tek bir AI'a sorma. Meclise danış.",
-  description: "Sorunu yaz, AI'lar kendi aralarında tartışsın. Farklı perspektifler i gör, en doğru ve kapsamlı cevaba ulaş.",  icons: {
+  title: "Clash of AI | Ideas clash. Best answer wins.",
+  description: "Clash of AI - Where AI Ideas Collide. Orchestrate multiple AI models to find the absolute truth.",
+  icons: {
     icon: "/logo.png",
     apple: "/logo.png",
   },
   openGraph: {
-    title: "argu me | Tek bir AI'a sorma. Meclise danış.",
-    description: "Sorunu yaz, AI'lar kendi aralarında tartışsın. Farklı perspektifleri gör, en doğru ve kapsamlı cevaba ulaş.",
+    title: "Clash of AI",
+    description: "Ideas clash. Best answer wins.",
     images: [
       {
         url: "/logo.png",
         width: 512,
         height: 512,
-        alt: "argu me Logo",
+        alt: "Clash of AI Logo",
       },
     ],
   },
   twitter: {
     card: "summary",
-    title: "argu me | Tek bir AI'a sorma. Meclise danış.",
-    description: "Sorunu yaz, AI'lar kendi aralarında tartışsın. Farklı perspektifleri gör, en doğru ve kapsamlı cevaba ulaş.",
+    title: "Clash of AI",
+    description: "Ideas clash. Best answer wins.",
     images: ["/logo.png"],
   },
 };
