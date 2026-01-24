@@ -5,8 +5,15 @@ import { MessageBubble } from './MessageBubble'
 import { ChatInput } from './ChatInput'
 import { TypingIndicator } from './TypingIndicator'
 import { ModelType } from './ModelAvatar'
+import { InterjectionNote, InterjectionType } from './InterjectionNote'
 
 export const dynamic = 'force-dynamic'
+
+interface Interjection {
+  type: InterjectionType
+  modelName: string
+  content: string
+}
 
 interface Message {
   id: string
@@ -14,6 +21,7 @@ interface Message {
   content: string
   model?: ModelType
   timestamp: string
+  interjection?: Interjection
 }
 
 export const ChatContainer = ({ onFirstMessage, isInitial = false }: { onFirstMessage?: () => void, isInitial?: boolean }) => {
@@ -31,11 +39,6 @@ export const ChatContainer = ({ onFirstMessage, isInitial = false }: { onFirstMe
     scrollToBottom()
   }, [messages, isTyping])
 
-  useEffect(() => {
-    const timer = setTimeout(scrollToBottom, 100)
-    return () => clearTimeout(timer)
-  }, [])
-
   const handleSend = async (content: string) => {
     if (!content.trim() || isTyping) return
     setError(null)
@@ -48,58 +51,71 @@ export const ChatContainer = ({ onFirstMessage, isInitial = false }: { onFirstMe
     }
     
     setMessages(prev => [...prev, userMsg])
-    
-    if (messages.length === 0 && onFirstMessage) {
-      onFirstMessage()
-    }
+    if (messages.length === 0 && onFirstMessage) onFirstMessage()
 
     setIsTyping(true)
 
     try {
-      // TÜM MODELLER: GPT, Claude, Gemini, Grok, DeepSeek
-      const models: ModelType[] = ['gpt', 'claude', 'gemini', 'grok', 'deepseek']
-      
-      for (const model of models) {
-        setTypingModel(`${model.toUpperCase()} yanıtlıyor...`)
+      const workflow = [
+        { role: 'assistant', model: 'deepseek' as ModelType, label: 'Fast Worker' },
+        { role: 'assistant', model: 'claude' as ModelType, label: 'Architect' },
+        { role: 'interjection', model: 'prosecutor' as ModelType, label: 'Prosecutor' }
+      ]
+
+      let currentMessages = [...messages, userMsg]
+
+      for (const step of workflow) {
+        setTypingModel(`${step.label} yanıtlıyor...`)
         
         const response = await fetch('/api/chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            messages: [...messages, userMsg].map(m => ({ role: m.role, content: m.content })),
-            model: model
+            messages: currentMessages.map(m => ({ role: m.role, content: m.content })),
+            model: step.model
           })
         })
 
-        if (!response.ok) {
-          const errData = await response.json().catch(() => ({ error: 'API Hatası' }))
-          // Bir model hata verirse diğerlerine devam et, ama hatayı logla
-          console.error(`${model} Error:`, errData)
-          continue 
-        }
+        if (!response.ok) continue
 
         const data = await response.json()
         const aiContent = data.choices?.[0]?.message?.content || ''
 
         if (aiContent) {
-          setMessages(prev => [...prev, {
-            id: Math.random().toString(36).substring(7),
-            role: 'assistant',
-            model: model,
-            content: aiContent,
-            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-          }])
+          if (step.role === 'interjection') {
+            setMessages(prev => {
+              const newMessages = [...prev]
+              const lastAiIdx = newMessages.map(m => m.role).lastIndexOf('assistant')
+              if (lastAiIdx !== -1) {
+                newMessages[lastAiIdx] = {
+                  ...newMessages[lastAiIdx],
+                  interjection: {
+                    type: 'BETTER_APPROACH',
+                    modelName: 'Prosecutor (DeepSeek-R)',
+                    content: aiContent.substring(0, 200) + (aiContent.length > 200 ? '...' : '')
+                  }
+                }
+              }
+              return newMessages
+            })
+          } else {
+            const newMsg: Message = {
+              id: Math.random().toString(36).substring(7),
+              role: 'assistant',
+              model: step.model,
+              content: aiContent,
+              timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+            }
+            setMessages(prev => [...prev, newMsg])
+            currentMessages.push(newMsg)
+          }
         }
-        
-        // Modeller arası geçişte doğal bir bekleme
-        await new Promise(r => setTimeout(r, 800))
+        await new Promise(r => setTimeout(r, 600))
       }
     } catch (err: any) {
-      console.error('Chat Error:', err)
       setError('Konsey tartışması sırasında bir hata oluştu.')
     } finally {
       setIsTyping(false)
-      setTypingModel('Konsey Tartışıyor...')
     }
   }
 
@@ -110,13 +126,23 @@ export const ChatContainer = ({ onFirstMessage, isInitial = false }: { onFirstMe
       <div className="flex-1 overflow-y-auto pt-4 pb-32">
         <div className="w-full max-w-4xl mx-auto">
           {messages.map((msg) => (
-            <MessageBubble 
-              key={msg.id} 
-              role={msg.role} 
-              content={msg.content} 
-              model={msg.model} 
-              timestamp={msg.timestamp} 
-            />
+            <div key={msg.id}>
+              <MessageBubble 
+                role={msg.role} 
+                content={msg.content} 
+                model={msg.model} 
+                timestamp={msg.timestamp} 
+              />
+              {msg.interjection && (
+                <div className="max-w-3xl mx-auto px-6 -mt-4 mb-8">
+                  <InterjectionNote 
+                    type={msg.interjection.type}
+                    modelName={msg.interjection.modelName}
+                    content={msg.interjection.content}
+                  />
+                </div>
+              )}
+            </div>
           ))}
           {isTyping && (
             <div className="px-4 py-4">
