@@ -1,7 +1,8 @@
 import React from 'react'
 import { cn } from '@/lib/utils'
-import { ModelType } from './ModelAvatar'
-import { ModelBadge } from './ModelBadge'
+import { ModelType } from '../ModelAvatar'
+import { ModelBadge } from '../ModelBadge'
+import { getModelColor } from '@/lib/modelNames'
 import { motion } from 'framer-motion'
 
 export type MessageType = 
@@ -19,7 +20,8 @@ export type MessageType =
 interface MessageBubbleProps {
   role: 'user' | 'assistant'
   content: string
-  model?: ModelType
+  model?: ModelType | string
+  modelId?: string
   timestamp?: string
   type?: MessageType
 }
@@ -40,9 +42,10 @@ const getMessageStyle = (type: MessageType = 'normal') => {
   return styles[type] || styles.normal;
 };
 
-export const MessageBubble = ({ role, content, model, timestamp, type = 'normal' }: MessageBubbleProps) => {
+export const MessageBubble = ({ role, content, model, modelId, timestamp, type = 'normal' }: MessageBubbleProps) => {
   const isUser = role === 'user'
   const style = getMessageStyle(isUser ? 'normal' : type)
+  const modelColor = modelId ? getModelColor(modelId) : '#6B7280'
 
   return (
     <motion.div
@@ -81,7 +84,18 @@ export const MessageBubble = ({ role, content, model, timestamp, type = 'normal'
                   </span>
                 )}
               </div>
-              {model && <ModelBadge model={model} />}
+              {/* Model adı (renkli nokta ile) */}
+              {model && (
+                <div className="flex items-center gap-2">
+                  <span 
+                    className="w-2 h-2 rounded-full"
+                    style={{ backgroundColor: modelColor }}
+                  ></span>
+                  <span className="text-[12px] font-semibold text-slate-500 uppercase tracking-wider">
+                    {model}
+                  </span>
+                </div>
+              )}
             </div>
           )}
           

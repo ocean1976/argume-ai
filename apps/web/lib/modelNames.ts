@@ -1,30 +1,45 @@
-import { MODELS } from './models';
+// Model ID → Görünen isim eşleştirmesi
 
-// Model ID'lerini kullanıcı arayüzünde gösterilecek daha okunabilir isimlerle eşleştirir.
-export const MODEL_NAMES: Record<string, string> = {
-  [MODELS.orchestrator]: 'GPT-4o Mini (Orchestrator)',
-  
+export const MODEL_DISPLAY_NAMES: Record<string, string> = {
   // T1 - Fast
-  [MODELS.fastWorker]: 'DeepSeek Chat (Fast Worker)',
-  [MODELS.librarian]: 'Gemini 2.5 Flash (Librarian)',
+  'deepseek/deepseek-chat': 'DeepSeek',
+  'google/gemini-2.0-flash-001': 'Gemini Flash',
   
   // T2 - Specialist
-  [MODELS.architect]: 'Claude 3.5 Sonnet (Architect)',
-  [MODELS.prosecutor]: 'DeepSeek Reasoner (Prosecutor)',
-  [MODELS.newsAnchor]: 'Grok-2 (News Anchor)',
+  'anthropic/claude-sonnet-4': 'Claude Sonnet',
+  'deepseek/deepseek-reasoner': 'DeepSeek Reasoner',
+  'x-ai/grok-2-1212': 'Grok',
   
   // T3 - Premium
-  [MODELS.judge]: 'Claude 3 Opus (High Judge)',
-  [MODELS.reasoner]: 'OpenAI O1 (Reasoner)',
-  [MODELS.visionary]: 'Gemini 2.5 Pro (Visionary)',
+  'anthropic/claude-opus-4': 'Claude Opus',
+  'openai/o1': 'GPT o1',
+  'google/gemini-2.5-pro': 'Gemini Pro',
+  
+  // Orkestratör & Fallback
+  'openai/gpt-4o-mini': 'GPT-4o Mini',
+  'openai/gpt-4o': 'GPT-4o',
 };
 
-// Fallback durumunda kullanılacak genel isim
-export const FALLBACK_MODEL_NAME = 'DeepSeek Chat (Fallback)';
+// Model ID'den görünen isim al
+export function getModelDisplayName(modelId: string): string {
+  return MODEL_DISPLAY_NAMES[modelId] || modelId;
+}
 
-// ID'den okunabilir ismi döndüren fonksiyon
-export function getModelName(modelId: string): string {
-  // Eğer model ID'si doğrudan MODEL_NAMES içinde yoksa,
-  // bu bir fallback model çağrısı olabilir.
-  return MODEL_NAMES[modelId] || FALLBACK_MODEL_NAME;
+// Model renkleri (UI için)
+export const MODEL_COLORS: Record<string, string> = {
+  'deepseek/deepseek-chat': '#7C3AED',        // Mor
+  'deepseek/deepseek-reasoner': '#7C3AED',    // Mor
+  'google/gemini-2.0-flash-001': '#4285F4',   // Mavi
+  'google/gemini-2.5-pro': '#4285F4',         // Mavi
+  'anthropic/claude-sonnet-4': '#D97706',     // Turuncu
+  'anthropic/claude-opus-4': '#D97706',       // Turuncu
+  'x-ai/grok-2-1212': '#E11D48',              // Kırmızı
+  'openai/o1': '#10A37F',                     // Yeşil
+  'openai/gpt-4o-mini': '#10A37F',            // Yeşil
+  'openai/gpt-4o': '#10A37F',                 // Yeşil
+};
+
+// Model rengini al
+export function getModelColor(modelId: string): string {
+  return MODEL_COLORS[modelId] || '#6B7280'; // Varsayılan gri
 }

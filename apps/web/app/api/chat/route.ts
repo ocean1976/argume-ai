@@ -1,26 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { MODELS, FALLBACK_MODELS } from '@/lib/models'
+import { getModelDisplayName } from '@/lib/modelNames'
 import { getTier } from '@/lib/orchestrator'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'edge'
-
-// Model ID'den görünen isim
-function getModelDisplayName(modelId: string): string {
-  const names: Record<string, string> = {
-    'deepseek/deepseek-chat': 'DeepSeek',
-    'google/gemini-2.0-flash-001': 'Gemini Flash',
-    'anthropic/claude-sonnet-4': 'Claude Sonnet',
-    'deepseek/deepseek-reasoner': 'DeepSeek Reasoner',
-    'x-ai/grok-2-1212': 'Grok',
-    'anthropic/claude-opus-4': 'Claude Opus',
-    'openai/o1': 'GPT o1',
-    'google/gemini-2.5-pro': 'Gemini Pro',
-    'openai/gpt-4o-mini': 'GPT-4o Mini',
-    'openai/gpt-4o': 'GPT-4o',
-  };
-  return names[modelId] || modelId;
-}
 
 async function callModel(
   modelId: string, 
