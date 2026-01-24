@@ -26,12 +26,18 @@ async function callModel(modelId: string, prompt: string, systemPrompt?: string)
     }),
   });
   
+  const data = await response.json();
+
   if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`OpenRouter Error: ${response.status} - ${errorText}`);
+    // OpenRouter'dan gelen hata mesajını yakala
+    const errorMessage = data.error ? data.error.message : `HTTP Error ${response.status}`;
+    throw new Error(`OpenRouter Error: ${errorMessage}`);
   }
   
-  const data = await response.json();
+  if (!data.choices || data.choices.length === 0) {
+    throw new Error('OpenRouter Error: Model yanıt vermedi veya boş bir seçim listesi döndürdü.');
+  }
+
   return data.choices[0].message.content;
 }
 
@@ -133,7 +139,27 @@ export async function POST(req: NextRequest) {
     });
     
   } catch (error: any) {
-    return new NextResponse(JSON.stringify({ error: error.message }), {
+    // Hata mesajını temizle ve kullanıcıya göster
+    let errorMessage = error.message || 'Bilinmeyen bir sunucu hatası oluştu.';
+    
+    // API Key hatası gibi hassas bilgileri temizle
+    if (errorMessage.includes('Authorization')) {
+      errorMessage = 'API Key Hatası: OpenRouter API Key geçersiz veya eksik.';
+    } else if (errorMessage.includes('HTTP Error 404')) {
+      errorMessage = 'Model Bulunamadı Hatası: Kullanılan model ID\'si OpenRouter\'da mevcut değil.';
+    } else if (errorMessage.includes('HTTP Error 429')) {
+      errorMessage = 'Hız Limiti Hatası: Çok fazla istek gönderildi. Lütfen bir süre sonra tekrar deneyin.';
+    } else if (errorMessage.includes('HTTP Error 400')) {
+      errorMessage = 'Geçersiz İstek Hatası: İstek formatı veya parametreleri hatalı.';
+    } else if (errorMessage.includes('OpenRouter Error:')) {
+      // OpenRouter'dan gelen spesifik hatayı koru
+      errorMessage = errorMessage.replace('OpenRouter Error: ', '');
+    }
+
+    return new NextResponse(JSON.stringify({ 
+      error: errorMessage,
+      type: 'error' // Frontend'in bu mesajı hata olarak işlemesi için
+    }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' }
     });
