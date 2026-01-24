@@ -13,6 +13,10 @@ async function callModel(
   allowFallback: boolean = true
 ): Promise<{ content: string; usedModel: string }> {
   
+  // 30 saniye timeout
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 30000);
+  
   try {
     const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
@@ -29,28 +33,45 @@ async function callModel(
           { role: 'user', content: prompt }
         ],
         stream: false,
+        max_tokens: 1000,
       }),
+      signal: controller.signal,
     });
+    
+    clearTimeout(timeoutId);
+    
+    // HTTP hatası kontrolü
+    if (!response.ok) {
+      console.error(`HTTP hatası (${modelId}): ${response.status}`);
+      
+      // Fallback dene
+      if (allowFallback && FALLBACK_MODELS[modelId]) {
+        console.log(`Fallback: ${modelId} → ${FALLBACK_MODELS[modelId]}`);
+        return await callModel(FALLBACK_MODELS[modelId], prompt, systemPrompt, false);
+      }
+      
+      return { content: '[Model yanıt veremedi]', usedModel: modelId };
+    }
     
     const data = await response.json();
     
-    // Hata varsa fallback dene
-    if (data.error || !data.choices || !data.choices[0]) {
-      console.error(`Model hatası (${modelId}):`, data.error?.message || 'Bilinmeyen hata');
+    // API hatası kontrolü
+    if (data.error) {
+      console.error(`API hatası (${modelId}):`, data.error.message);
       
-      // Fallback izni varsa ve yedek model varsa
+      // Fallback dene
       if (allowFallback && FALLBACK_MODELS[modelId]) {
-        const fallbackId = FALLBACK_MODELS[modelId];
-        console.log(`Fallback deneniyor: ${modelId} → ${fallbackId}`);
-        
-        // Yedek modeli çağır (fallback = false, sonsuz döngü olmasın)
-        return await callModel(fallbackId, prompt, systemPrompt, false);
+        console.log(`Fallback: ${modelId} → ${FALLBACK_MODELS[modelId]}`);
+        return await callModel(FALLBACK_MODELS[modelId], prompt, systemPrompt, false);
       }
       
-      return { 
-        content: '[Model yanıt veremedi]', 
-        usedModel: modelId 
-      };
+      return { content: '[Model hatası]', usedModel: modelId };
+    }
+    
+    // Yanıt formatı kontrolü
+    if (!data.choices || !data.choices[0] || !data.choices[0].message) {
+      console.error(`Beklenmeyen yanıt (${modelId})`);
+      return { content: '[Beklenmeyen yanıt]', usedModel: modelId };
     }
     
     return { 
@@ -59,19 +80,31 @@ async function callModel(
     };
     
   } catch (error: any) {
-    console.error(`Model çağrı hatası (${modelId}):`, error.message);
+    clearTimeout(timeoutId);
+    
+    // Timeout hatası
+    if (error.name === 'AbortError') {
+      console.error(`TIMEOUT (${modelId}): 30 saniye aşıldı`);
+      
+      // Fallback dene
+      if (allowFallback && FALLBACK_MODELS[modelId]) {
+        console.log(`Timeout fallback: ${modelId} → ${FALLBACK_MODELS[modelId]}`);
+        return await callModel(FALLBACK_MODELS[modelId], prompt, systemPrompt, false);
+      }
+      
+      return { content: '[Zaman aşımı - Model çok yavaş]', usedModel: modelId };
+    }
+    
+    // Diğer hatalar
+    console.error(`Bağlantı hatası (${modelId}):`, error.message);
     
     // Fallback dene
     if (allowFallback && FALLBACK_MODELS[modelId]) {
-      const fallbackId = FALLBACK_MODELS[modelId];
-      console.log(`Fallback deneniyor (catch): ${modelId} → ${fallbackId}`);
-      return await callModel(fallbackId, prompt, systemPrompt, false);
+      console.log(`Hata fallback: ${modelId} → ${FALLBACK_MODELS[modelId]}`);
+      return await callModel(FALLBACK_MODELS[modelId], prompt, systemPrompt, false);
     }
     
-    return { 
-      content: '[Bağlantı hatası]', 
-      usedModel: modelId 
-    };
+    return { content: '[Bağlantı hatası]', usedModel: modelId };
   }
 }
 
@@ -79,123 +112,131 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const { messages } = body;
-    const lastMessage = messages[messages.length - 1].content;
-    
-    const tier = getTier(lastMessage);
-    
+
+    if (!messages || messages.length === 0) {
+      return NextResponse.json({ error: 'Mesaj gerekli' }, { status: 400 });
+    }
+
+    const lastMessage = messages[messages.length - 1];
+    const userMessage = lastMessage.content;
+
+    // Tier belirleme
+    const tier = getTier(userMessage);
+    console.log(`Tier: ${tier} | Mesaj: "${userMessage}"`);
+
+    const responses: any[] = [];
+
     if (tier === 'T1') {
-      const { content, usedModel } = await callModel(MODELS.fastWorker, lastMessage);
-      return NextResponse.json({
-        tier: 'T1',
-        responses: [{ type: 'normal', model: getModelDisplayName(usedModel), content: content }]
+      // T1: Tek model (DeepSeek)
+      const { content, usedModel } = await callModel(MODELS.fastWorker, userMessage);
+      responses.push({
+        type: 'normal',
+        model: getModelDisplayName(usedModel),
+        content: content
       });
-    }
-    
-    if (tier === 'T2') {
-      const { content: mainResponse, usedModel: architectModel } = await callModel(
-        MODELS.architect, 
-        lastMessage, 
-        "You are the Architect. Provide a detailed and structured answer."
-      );
-      
-      const { content: interjection, usedModel: prosecutorModel } = await callModel(
-        MODELS.prosecutor,
-        `User Question: ${lastMessage}\nArchitect's Answer: ${mainResponse}\n\nTask: Critically analyze the answer. If there is a mistake, a better approach, or a missing constraint, provide a VERY SHORT note (max 2 sentences). If the answer is perfect, reply ONLY with 'OK'.`,
-        "You are the Prosecutor. Be critical and concise."
-      );
-      
-      const responses = [
-        { type: 'normal', model: getModelDisplayName(architectModel), content: mainResponse }
-      ];
-      
-      if (interjection.trim().toUpperCase() !== 'OK') {
-        responses.push({ type: 'info', model: getModelDisplayName(prosecutorModel), content: interjection });
-      }
-      
-      return NextResponse.json({ tier: 'T2', responses });
-    }
-
-    if (tier === 'T2.5') {
-      const { content: thesis, usedModel: thesisModel } = await callModel(
+    } else if (tier === 'T2') {
+      // T2: Ana model + Prosecutor dipnot
+      const { content: mainContent, usedModel: mainModel } = await callModel(
         MODELS.architect,
-        lastMessage,
-        "You are the Architect. Your role is to present a strong THESIS (🛡️). Provide a clear and well-supported argument."
+        userMessage
       );
-
-      const { content: antithesis, usedModel: antithesisModel } = await callModel(
-        MODELS.prosecutor,
-        `User Question: ${lastMessage}\n\n🛡️ THESIS TO CHALLENGE:\n${thesis}\n\nTask: Present a strong ANTITHESIS (⚔️). Do NOT repeat the thesis. Challenge its weaknesses and offer a compelling counter-argument.`,
-        "You are the Prosecutor. Be sharp and provide a strong counter-view."
-      );
-
-      return NextResponse.json({
-        tier: 'T2.5',
-        responses: [
-          { type: 'thesis', model: getModelDisplayName(thesisModel), content: thesis },
-          { type: 'antithesis', model: getModelDisplayName(antithesisModel), content: antithesis }
-        ]
+      
+      responses.push({
+        type: 'normal',
+        model: getModelDisplayName(mainModel),
+        content: mainContent
       });
-    }
 
-    if (tier === 'T3') {
-      const { content: thesis, usedModel: thesisModel } = await callModel(
-        MODELS.architect,
-        lastMessage,
-        "You are the Architect. Present a deep and comprehensive THESIS (🛡️). Consider all major factors."
-      );
-
-      const { content: antithesis, usedModel: antithesisModel } = await callModel(
+      // Prosecutor dipnot
+      const prosecutorPrompt = `Önceki yanıta eleştirel bak ve eksik/hatalı noktaları belirt:\n\n${mainContent}`;
+      const { content: prosecutorContent, usedModel: prosecutorModel } = await callModel(
         MODELS.prosecutor,
-        `User Question: ${lastMessage}\n\n🛡️ THESIS TO CHALLENGE:\n${thesis}\n\nTask: Present a sharp ANTITHESIS (⚔️). Highlight risks and provide a strong counter-perspective.`,
-        "You are the Prosecutor. Be highly critical and analytical."
+        prosecutorPrompt,
+        "Sen bir savcı gibi düşünürsün. Argümanlardaki zayıf noktaları, mantık hatalarını ve eksiklikleri tespit edersin. Kısa ve keskin ol."
       );
+      
+      responses.push({
+        type: 'warning',
+        model: getModelDisplayName(prosecutorModel),
+        content: prosecutorContent
+      });
+    } else if (tier === 'T2.5') {
+      // T2.5: Tez + Antitez
+      
+      // TEZ
+      const { content: thesisContent, usedModel: thesisModel } = await callModel(
+        MODELS.architect,
+        userMessage,
+        "Sen bir tez savunucususun. Kullanıcının sorusuna güçlü bir argüman sun. Net, ikna edici ve yapıcı ol."
+      );
+      
+      responses.push({
+        type: 'thesis',
+        model: getModelDisplayName(thesisModel),
+        content: thesisContent
+      });
 
-      const { content: synthesis, usedModel: synthesisModel } = await callModel(
+      // ANTİTEZ (Tez'i bilerek)
+      const antithesisPrompt = `Kullanıcı şunu sordu: "${userMessage}"\n\nBir başka model şu tezi savundu:\n\n${thesisContent}\n\nŞimdi sen bu teze karşı güçlü bir antitez sun. Farklı bir bakış açısı getir.`;
+      const { content: antithesisContent, usedModel: antithesisModel } = await callModel(
+        MODELS.reasoner,
+        antithesisPrompt,
+        "Sen bir antitez savunucususun. Karşı argümanlar geliştirirsin. Eleştirel, sorgulayıcı ve alternatif bakış açıları sunan bir yaklaşım benimsersin."
+      );
+      
+      responses.push({
+        type: 'antithesis',
+        model: getModelDisplayName(antithesisModel),
+        content: antithesisContent
+      });
+    } else if (tier === 'T3') {
+      // T3: Tez + Antitez + Sentez
+      
+      // TEZ
+      const { content: thesisContent, usedModel: thesisModel } = await callModel(
+        MODELS.architect,
+        userMessage,
+        "Sen bir tez savunucususun. Kullanıcının sorusuna güçlü bir argüman sun. Net, ikna edici ve yapıcı ol."
+      );
+      
+      responses.push({
+        type: 'thesis',
+        model: getModelDisplayName(thesisModel),
+        content: thesisContent
+      });
+
+      // ANTİTEZ (Tez'i bilerek)
+      const antithesisPrompt = `Kullanıcı şunu sordu: "${userMessage}"\n\nBir başka model şu tezi savundu:\n\n${thesisContent}\n\nŞimdi sen bu teze karşı güçlü bir antitez sun. Farklı bir bakış açısı getir.`;
+      const { content: antithesisContent, usedModel: antithesisModel } = await callModel(
+        MODELS.reasoner,
+        antithesisPrompt,
+        "Sen bir antitez savunucususun. Karşı argümanlar geliştirirsin. Eleştirel, sorgulayıcı ve alternatif bakış açıları sunan bir yaklaşım benimsersin."
+      );
+      
+      responses.push({
+        type: 'antithesis',
+        model: getModelDisplayName(antithesisModel),
+        content: antithesisContent
+      });
+
+      // SENTEZ (Hem Tez hem Antitez'i bilerek)
+      const synthesisPrompt = `Kullanıcı şunu sordu: "${userMessage}"\n\nİki farklı model şu argümanları sundu:\n\nTEZ:\n${thesisContent}\n\nANTİTEZ:\n${antithesisContent}\n\nŞimdi sen bu iki görüşü sentezleyerek dengeli, bütüncül ve nihai bir yanıt ver.`;
+      const { content: synthesisContent, usedModel: synthesisModel } = await callModel(
         MODELS.judge,
-        `User Question: ${lastMessage}\n\n🛡️ THESIS:\n${thesis}\n\n⚔️ ANTITHESIS:\n${antithesis}\n\nTask: You are the High Judge. Provide the final SYNTHESIS (◆). Weigh both arguments, resolve the conflict, and provide the most balanced and definitive answer.`,
-        "You are the High Judge. Be wise, balanced, and decisive."
+        synthesisPrompt,
+        "Sen yüksek bir yargıç gibisin. Farklı argümanları dinler, analiz eder ve dengeli bir sentez sunar. Tarafsız, adil ve bilgece karar verirsin."
       );
-
-      return NextResponse.json({
-        tier: 'T3',
-        responses: [
-          { type: 'thesis', model: getModelDisplayName(thesisModel), content: thesis },
-          { type: 'antithesis', model: getModelDisplayName(antithesisModel), content: antithesis },
-          { type: 'synthesis', model: getModelDisplayName(synthesisModel), content: synthesis }
-        ]
+      
+      responses.push({
+        type: 'synthesis',
+        model: getModelDisplayName(synthesisModel),
+        content: synthesisContent
       });
     }
-    
-    const { content, usedModel } = await callModel(MODELS.fastWorker, lastMessage);
-    return NextResponse.json({
-      tier: tier,
-      responses: [{ type: 'normal', model: getModelDisplayName(usedModel), content: content }]
-    });
-    
-  } catch (error: any) {
-    // Hata mesajını temizle ve kullanıcıya göster
-    let errorMessage = error.message || 'Bilinmeyen bir sunucu hatası oluştu.';
-    
-    // API Key hatası gibi hassas bilgileri temizle
-    if (errorMessage.includes('Authorization')) {
-      errorMessage = 'API Key Hatası: OpenRouter API Key geçersiz veya eksik.';
-    } else if (errorMessage.includes('HTTP Error 404')) {
-      errorMessage = 'Model Bulunamadı Hatası: Kullanılan model ID\'si OpenRouter\'da mevcut değil.';
-    } else if (errorMessage.includes('HTTP Error 429')) {
-      errorMessage = 'Hız Limiti Hatası: Çok fazla istek gönderildi. Lütfen bir süre sonra tekrar deneyin.';
-    } else if (errorMessage.includes('HTTP Error 400')) {
-      errorMessage = 'Geçersiz İstek Hatası: İstek formatı veya parametreleri hatalı.';
-    } else if (errorMessage.includes('OpenRouter Error:')) {
-      // OpenRouter'dan gelen spesifik hatayı koru
-      errorMessage = errorMessage.replace('OpenRouter Error: ', '');
-    }
 
-    return new NextResponse(JSON.stringify({ 
-      error: errorMessage,
-      type: 'error' // Frontend'in bu mesajı hata olarak işlemesi için
-    }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' }
-    });
+    return NextResponse.json({ responses });
+  } catch (error) {
+    console.error('POST /api/chat hatası:', error);
+    return NextResponse.json({ error: 'Sunucu hatası' }, { status: 500 });
   }
 }
