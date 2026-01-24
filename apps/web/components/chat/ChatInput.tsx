@@ -29,6 +29,17 @@ export const ChatInput = ({ onSend, disabled, isInitial = false }: ChatInputProp
     }
   }
 
+  // BUG 3 FIX: Yapıştırılan metni plain text'e zorla
+  const handlePaste = (e: React.ClipboardEvent) => {
+    e.preventDefault()
+    const text = e.clipboardData.getData('text/plain')
+    // Mevcut input'a ekle
+    const start = textareaRef.current?.selectionStart || 0
+    const end = textareaRef.current?.selectionEnd || 0
+    const newValue = input.substring(0, start) + text + input.substring(end)
+    setInput(newValue)
+  }
+
   useEffect(() => {
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto'
@@ -51,6 +62,7 @@ export const ChatInput = ({ onSend, disabled, isInitial = false }: ChatInputProp
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
+            onPaste={handlePaste}
             placeholder={isInitial ? "Enter a topic to start the council debate..." : "Mesajınızı yazın..."}
             disabled={disabled}
             className={cn(

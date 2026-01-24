@@ -22,21 +22,23 @@ export const ChatContainer = ({ onFirstMessage, isInitial = false }: { onFirstMe
   const [error, setError] = useState<string | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
-  // Otomatik scroll fonksiyonu
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }
 
-  // Mesajlar veya yazma durumu değiştiğinde scroll yap
   useEffect(() => {
     scrollToBottom()
   }, [messages, isTyping])
 
+  // Sayfa ilk açıldığında en alta odaklan
+  useEffect(() => {
+    const timer = setTimeout(scrollToBottom, 100)
+    return () => clearTimeout(timer)
+  }, [])
+
   const handleSend = async (content: string) => {
     if (!content.trim() || isTyping) return
     setError(null)
-
-    if (messages.length === 0 && onFirstMessage) onFirstMessage()
 
     const userMsg: Message = {
       id: Date.now().toString(),
@@ -45,11 +47,16 @@ export const ChatContainer = ({ onFirstMessage, isInitial = false }: { onFirstMe
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     }
     
+    // BUG 1 FIX: Mesajı anında state'e ekle ve kaybolmasını engelle
     setMessages(prev => [...prev, userMsg])
+    
+    if (messages.length === 0 && onFirstMessage) {
+      onFirstMessage()
+    }
+
     setIsTyping(true)
 
     try {
-      // Konsey mantığı: GPT ve Claude'dan sırayla yanıt alalım
       const models: ModelType[] = ['gpt', 'claude']
       
       for (const model of models) {
@@ -57,6 +64,7 @@ export const ChatContainer = ({ onFirstMessage, isInitial = false }: { onFirstMe
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
+            // Güncel mesaj listesini gönder
             messages: [...messages, userMsg].map(m => ({ role: m.role, content: m.content })),
             model: model
           })
@@ -67,7 +75,7 @@ export const ChatContainer = ({ onFirstMessage, isInitial = false }: { onFirstMe
           throw new Error(errData.details?.error?.message || errData.error || 'Bağlantı hatası')
         }
 
-        // stream: false olduğu için doğrudan JSON yanıtı alıyoruz
+        // BUG 4 FIX: stream: false yanıtını işle
         const data = await response.json()
         const aiContent = data.choices?.[0]?.message?.content || ''
 
@@ -81,7 +89,6 @@ export const ChatContainer = ({ onFirstMessage, isInitial = false }: { onFirstMe
           }])
         }
         
-        // Modeller arası kısa bekleme
         await new Promise(r => setTimeout(r, 500))
       }
     } catch (err: any) {
@@ -96,8 +103,8 @@ export const ChatContainer = ({ onFirstMessage, isInitial = false }: { onFirstMe
 
   return (
     <div className="flex flex-col h-screen bg-[#F9F8F6]">
-      {/* Mesaj Alanı */}
-      <div className="flex-1 overflow-y-auto pt-4">
+      {/* BUG 2 FIX: Mesaj alanı tam genişlik ve otomatik scroll */}
+      <div className="flex-1 overflow-y-auto pt-4 pb-32">
         <div className="w-full max-w-4xl mx-auto">
           {messages.map((msg) => (
             <MessageBubble 
@@ -120,14 +127,15 @@ export const ChatContainer = ({ onFirstMessage, isInitial = false }: { onFirstMe
               </div>
             </div>
           )}
-          {/* Scroll Hedefi */}
-          <div ref={messagesEndRef} className="h-20" />
+          <div ref={messagesEndRef} />
         </div>
       </div>
       
-      {/* Sabit Input Alanı */}
-      <div className="border-t border-slate-100 bg-white/80 backdrop-blur-md">
-        <ChatInput onSend={handleSend} disabled={isTyping} />
+      {/* BUG 2 FIX: Sticky bottom input */}
+      <div className="fixed bottom-0 left-0 right-0 md:left-64 border-t border-slate-100 bg-white/80 backdrop-blur-md z-10">
+        <div className="max-w-4xl mx-auto">
+          <ChatInput onSend={handleSend} disabled={isTyping} />
+        </div>
       </div>
     </div>
   )
