@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { MODELS } from '@/lib/models'
+import { getModelName } from '@/lib/modelNames'
 import { getTier } from '@/lib/orchestrator'
 
 export const dynamic = 'force-dynamic'
@@ -78,7 +79,7 @@ export async function POST(req: NextRequest) {
       const response = await callModel(MODELS.fastWorker, lastMessage, undefined, MODELS.fastWorker); // T1'de fallback'e gerek yok, zaten en hızlı model
       return NextResponse.json({
         tier: 'T1',
-        responses: [{ type: 'normal', model: 'DeepSeek', content: response }]
+        responses: [{ type: 'normal', model: getModelName(MODELS.fastWorker), content: response }]
       });
     }
     
@@ -96,9 +97,9 @@ export async function POST(req: NextRequest) {
         "You are the Prosecutor. Be critical and concise."
       );
       
-      const responses = [
-        { type: 'normal', model: 'Claude', content: mainResponse }
-      ];
+        responses: [
+          { type: 'normal', model: getModelName(MODELS.architect), content: mainResponse }
+        ]];
       
       if (interjection.trim().toUpperCase() !== 'OK') {
         responses.push({ type: 'info', model: 'Prosecutor', content: interjection });
@@ -124,8 +125,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({
         tier: 'T2.5',
         responses: [
-          { type: 'thesis', model: 'Claude', content: thesis },
-          { type: 'antithesis', model: 'DeepSeek-R', content: antithesis }
+          { type: 'thesis', model: getModelName(MODELS.architect), content: thesis },
+          { type: 'antithesis', model: getModelName(MODELS.prosecutor), content: antithesis }
         ]
       });
     }
@@ -154,9 +155,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({
         tier: 'T3',
         responses: [
-          { type: 'thesis', model: 'Claude', content: thesis },
-          { type: 'antithesis', model: 'DeepSeek-R', content: antithesis },
-          { type: 'synthesis', model: 'Claude Opus', content: synthesis }
+          { type: 'thesis', model: getModelName(MODELS.architect), content: thesis },
+          { type: 'antithesis', model: getModelName(MODELS.prosecutor), content: antithesis },
+          { type: 'synthesis', model: getModelName(MODELS.judge), content: synthesis }
         ]
       });
     }
@@ -164,7 +165,7 @@ export async function POST(req: NextRequest) {
     const response = await callModel(MODELS.fastWorker, lastMessage, undefined, MODELS.fastWorker);
     return NextResponse.json({
       tier: tier,
-      responses: [{ type: 'normal', model: 'DeepSeek', content: response }]
+      responses: [{ type: 'normal', model: getModelName(MODELS.fastWorker), content: response }]
     });
     
   } catch (error: any) {
