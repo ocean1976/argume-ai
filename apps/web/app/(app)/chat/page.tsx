@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, Suspense } from 'react'
-import { ChatContainer } from '@/components/chat/ChatContainer'
+import ChatContainer from '@/components/chat/ChatContainer'
 import { Sidebar } from '@/components/chat/Sidebar'
 import { Menu, Share2, Search, MessageSquare, Code, Lightbulb, Globe } from 'lucide-react'
 import Image from 'next/image'

@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import MessageBubble from './MessageBubble';
-import ChatInput from './ChatInput';
+import { ChatInput } from './ChatInput';
 
 interface Message {
   id: string;
@@ -13,7 +13,12 @@ interface Message {
   type?: any;
 }
 
-export default function ChatContainer() {
+interface ChatContainerProps {
+  isInitial?: boolean;
+  onFirstMessage?: () => void;
+}
+
+export default function ChatContainer({ isInitial = false, onFirstMessage }: ChatContainerProps = {}) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState<string | null>(null);
@@ -43,6 +48,11 @@ export default function ChatContainer() {
       role: 'user',
       content,
     };
+
+    // Call onFirstMessage if this is the first message
+    if (messages.length === 0 && onFirstMessage) {
+      onFirstMessage();
+    }
 
     setMessages((prev) => [...prev, userMessage]);
     setIsLoading(true);
@@ -95,6 +105,11 @@ export default function ChatContainer() {
       setLoadingMessage(null);
     }
   };
+
+  // If isInitial, only show ChatInput
+  if (isInitial) {
+    return <ChatInput onSend={handleSend} disabled={isLoading} isInitial={true} />;
+  }
 
   return (
     <div className="flex flex-col h-screen bg-[#F9F8F6]">

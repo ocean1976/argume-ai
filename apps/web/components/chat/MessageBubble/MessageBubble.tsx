@@ -16,6 +16,7 @@ export type MessageType =
   | 'error' 
   | 'success' 
   | 'question'
+  | 'waiting'
 
 interface MessageBubbleProps {
   role: 'user' | 'assistant'
@@ -38,6 +39,7 @@ const getMessageStyle = (type: MessageType = 'normal') => {
     error:      { icon: '✕',  label: 'HATA',      color: '#EF4444' },
     success:    { icon: '✓',  label: 'ONAY',      color: '#10B981' },
     question:   { icon: '?',  label: 'SORU',      color: '#8B5CF6' },
+    waiting:    { icon: '⏳',  label: null,        color: '#9CA3AF' },
   };
   return styles[type] || styles.normal;
 };
